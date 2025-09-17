@@ -1,0 +1,233 @@
+📂 Entering folder: 3D Views
+  👀 Found view: BUILDING (GUID=96377567-b076-4717-9691-f1be84f621aa) → vp0001.jpg
+    ⚠️ No comments found for BUILDING
+  👀 Found view: UNDERGROUND (GUID=8ff2676e-e968-434f-88b8-54ee3cca877a) → vp0002.jpg
+    ⚠️ No comments found for UNDERGROUND
+  👀 Found view: LEVEL 1 (GUID=c1d91984-4266-477d-afc3-cd96db27969e) → vp0003.jpg
+    ⚠️ No comments found for LEVEL 1
+  👀 Found view: LEVEL 2 (GUID=d5bce6dc-b71e-45ad-a429-77f344b7f771) → vp0004.jpg
+    ⚠️ No comments found for LEVEL 2
+  👀 Found view: LEVEL 3  (GUID=db6b6108-d5e2-4b5e-afb7-f967709c24bf) → vp0005.jpg
+    ⚠️ No comments found for LEVEL 3 
+  👀 Found view: LEVEL 4 (GUID=1a065d52-c219-4641-9db4-43b456e3f7b2) → vp0006.jpg
+    ⚠️ No comments found for LEVEL 4
+  👀 Found view: LEVEL 5 (GUID=6552f9ce-604f-43e3-aa3f-50627bf302be) → vp0007.jpg
+    ⚠️ No comments found for LEVEL 5
+  👀 Found view: LEVEL 6 (GUID=11777c4f-5175-449b-9b67-b898d175b3b2) → vp0008.jpg
+    ⚠️ No comments found for LEVEL 6
+  👀 Found view: LEVEL 7  (GUID=2fc4b593-3ad5-4f7a-8a67-a6a0b0cd0055) → vp0009.jpg
+    ⚠️ No comments found for LEVEL 7 
+  👀 Found view: LEVEL 8 (GUID=7cd04af4-0841-462d-9f12-7bc08393ce33) → vp0010.jpg
+    ⚠️ No comments found for LEVEL 8
+  👀 Found view: LEVEL 8.5 INT  (GUID=c60af85c-3f04-4c2a-bbf4-4b46f24d804c) → vp0011.jpg
+    ⚠️ No comments found for LEVEL 8.5 INT 
+  👀 Found view: LEVEL 9  (GUID=b777694d-c311-4283-ac63-f5cac7fbf600) → vp0012.jpg
+    ⚠️ No comments found for LEVEL 9 
+  👀 Found view: LEVEL 10 (GUID=6c656e30-df5c-4220-8d5f-b616ba8ebcd6) → vp0013.jpg
+    ⚠️ No comments found for LEVEL 10
+  👀 Found view: LEVEL 11 (GUID=ccbe3558-c270-40f2-96e2-f2b9971cd948) → vp0014.jpg
+    ⚠️ No comments found for LEVEL 11
+  👀 Found view: LEVEL 12 (GUID=0ab78b82-dac0-41ef-84e0-053c4a831e8a) → vp0015.jpg
+    ⚠️ No comments found for LEVEL 12
+  👀 Found view: LEVEL 13 (GUID=e6f55544-a742-4da0-9181-528cdb0782e2) → vp0016.jpg
+    ⚠️ No comments found for LEVEL 13
+  👀 Found view: LEVLE 14 (GUID=8106e097-fb2c-4455-9c65-8b279d89cd83) → vp0017.jpg
+    ⚠️ No comments found for LEVLE 14
+  👀 Found view: LEVEL 15 (GUID=da8e6d53-0d67-490f-81ea-2a4dedf2dcd6) → vp0018.jpg
+    ⚠️ No comments found for LEVEL 15
+  👀 Found view: LEVEL 16 (GUID=7c9bf9d7-5eda-46aa-988c-79814a7ad010) → vp0019.jpg
+    ⚠️ No comments found for LEVEL 16
+  👀 Found view: LEVEL 17  (GUID=11798ccb-28ed-45a9-8c66-cb993e577ee5) → vp0020.jpg
+    ⚠️ No comments found for LEVEL 17 
+  👀 Found view: LEVEL 18 (GUID=a94a9947-3ace-42e3-9f56-c0b3c9930713) → vp0021.jpg
+    ⚠️ No comments found for LEVEL 18
+  👀 Found view: LEVEL 19 (GUID=80b73eed-43f0-4585-9146-3be4fc881390) → vp0022.jpg
+    ⚠️ No comments found for LEVEL 19
+  👀 Found view: LEVEL 20 (GUID=f6da23d5-69fb-4dbf-8dfd-81b68eb9da1b) → vp0023.jpg
+    ⚠️ No comments found for LEVEL 20
+  👀 Found view: LEVEL 21 (GUID=dd8189da-8ad8-460f-94cb-b61c27183ca1) → vp0024.jpg
+    ⚠️ No comments found for LEVEL 21
+  👀 Found view: LEVEL 22 (GUID=09bb7957-961a-43af-9dc9-b755e067112a) → vp0025.jpg
+    ⚠️ No comments found for LEVEL 22
+  👀 Found view: LEVEL 23 (GUID=3f97340b-c145-483a-9683-2b53907debe9) → vp0026.jpg
+    ⚠️ No comments found for LEVEL 23
+  👀 Found view: LEVEL 24 (GUID=e3bb5b0c-62a1-42ad-9464-5f922cebdca5) → vp0027.jpg
+    ⚠️ No comments found for LEVEL 24
+  👀 Found view: LEVEL 25 (GUID=3c7e73d4-5c2b-4f94-b745-e2e2f7a04aab) → vp0028.jpg
+    ⚠️ No comments found for LEVEL 25
+  👀 Found view: LEVEL 26 (GUID=d45c534b-a14b-4b89-8b8c-6fa4dfcb3cd7) → vp0029.jpg
+    ⚠️ No comments found for LEVEL 26
+  👀 Found view: ROOF (GUID=4beb0ea4-87fd-4f57-a357-92bc59b0f624) → vp0030.jpg
+    ⚠️ No comments found for ROOF
+  👀 Found view: TOP OF ROOF (GUID=b607b78e-5af3-498f-84d3-d550293d32c5) → vp0031.jpg
+    ⚠️ No comments found for TOP OF ROOF
+📂 Entering folder: CLASHES 
+📂 Entering folder: CLASHES  > UNDERGROUND 
+  👀 Found view: TAG 1 NO ELECT CONDUITS (GUID=1531c3e1-09ca-49e8-90a4-5423db098c13) → vp0032.jpg
+    💬 Comment ID=1, Status=new, User=abner
+  👀 Found view: TAG 2 PIPE IN RAMP  (GUID=65d3308a-71da-4ec8-9e1a-2d2a04a5c4dc) → vp0033.jpg
+    💬 Comment ID=2, Status=new, User=abner
+  👀 Found view: TAG PL VS EE (GUID=74af9ba4-fd6f-4909-824b-0b4eed428cf6) → vp0034.jpg
+    ⚠️ No comments found for TAG PL VS EE
+📂 Entering folder: CLASHES  > UNDERGROUND  > PRIORITY
+  👀 Found view: TAG ELECT ROOM  (GUID=28307011-46d3-4342-b120-f2f05399aa30) → vp0035.jpg
+    ⚠️ No comments found for TAG ELECT ROOM 
+  👀 Found view: TAG 3  PIPES IN FOOTING  (GUID=b33adb15-c64b-4bac-b153-8150bdca63fd) → vp0036.jpg
+    💬 Comment ID=3, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 1
+  👀 Found view: TAG 4 PIPE EXPOSED  (GUID=9485a906-c50c-4d0a-a8c0-6e0fa76f2d3b) → vp0037.jpg
+    💬 Comment ID=4, Status=new, User=abner
+  👀 Found view: TAG 5 PIPE EXPOSED  (GUID=b11deb06-38a0-49d8-8761-2c77efa9cd27) → vp0038.jpg
+    💬 Comment ID=5, Status=new, User=abner
+  👀 Found view: TAG 6 PIPE BIGGER THAN WALL  (GUID=90ff6c2f-086a-4b5d-94f6-53523b890d68) → vp0039.jpg
+    💬 Comment ID=6, Status=new, User=abner
+  👀 Found view: TAG 7 PIPES EXPOSED  (GUID=960c4bec-fb12-4281-a354-4378c8d4b349) → vp0040.jpg
+    💬 Comment ID=7, Status=new, User=abner
+  👀 Found view: TAG 8 LIGHTS IN CONFLICT W DIFFUSER (GUID=86ddbf15-9fcb-4ccc-aa33-bfdda45888ae) → vp0041.jpg
+    💬 Comment ID=8, Status=new, User=abner
+  👀 Found view: TAG 9 PL VS MD (GUID=071aa695-4746-4e17-9f14-a319eb840507) → vp0042.jpg
+    💬 Comment ID=9, Status=new, User=abner
+  👀 Found view: TAG 10 PL VS MD (GUID=181460b3-4a21-4889-844f-ee34ed1e29c7) → vp0043.jpg
+    💬 Comment ID=10, Status=new, User=abner
+  👀 Found view: TAG 11 PL VS MD  (GUID=c003e933-ca31-42a3-8c74-a347b726717e) → vp0044.jpg
+    💬 Comment ID=11, Status=new, User=abner
+  👀 Found view: TAG 12 CEILING NOT AT FF (GUID=dd904328-6041-4fe9-ad10-0723843d9c90) → vp0045.jpg
+    💬 Comment ID=12, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 2 
+  👀 Found view: TAG 13 CEILING NOT AT FF (GUID=8d39a279-2fad-4022-81f1-0b3166f1bced) → vp0046.jpg
+    💬 Comment ID=13, Status=new, User=abner
+  👀 Found view: TAG 14 EE NOT IN DRAWINGS (GUID=fda30109-f29e-41cf-b75a-bfa4f16d000c) → vp0047.jpg
+    💬 Comment ID=14, Status=new, User=abner
+  👀 Found view: TAG 15 LOWER POINT IN THE PARKING (GUID=a07be432-3a4d-4318-8b34-15a5c1a00ba2) → vp0048.jpg
+    💬 Comment ID=15, Status=new, User=abner
+  👀 Found view: TAG 16 PL OUT OF THE WALL  (GUID=2557891f-f14f-4b7d-a81b-fbfc9015f7bc) → vp0049.jpg
+    💬 Comment ID=16, Status=new, User=abner
+  👀 Found view: TAG 17 PL OUT OF THE WALL  (GUID=15785aad-8476-4bed-bffd-f45fc14e14ec) → vp0050.jpg
+    💬 Comment ID=17, Status=new, User=abner
+  👀 Found view: TAG 18 PL OUT OF WALL  (GUID=5985f151-5781-42fd-936a-6dce969de723) → vp0051.jpg
+    💬 Comment ID=18, Status=new, User=abner
+  👀 Found view: TAG 19 MISSING FP NOT SPACE (GUID=26cbad2d-94cf-4bc5-8ecb-b3588b3a4bd4) → vp0052.jpg
+    💬 Comment ID=19, Status=new, User=abner
+  👀 Found view: TAG 20 LIGHT VS DUCT (GUID=ce806c8f-5b21-486f-b506-73d20f06056a) → vp0053.jpg
+    💬 Comment ID=20, Status=new, User=abner
+  👀 Found view: TAG 21 MD VS EE VS PL  (GUID=18e71ebe-ef8d-4ee4-a9ca-0a8a306cc998) → vp0054.jpg
+    💬 Comment ID=21, Status=new, User=abner
+  👀 Found view: TAG 22 MD VS WALL AND PIPE  (GUID=538924a7-b7c9-4574-b014-98fdf9c5a20a) → vp0055.jpg
+    ⚠️ No comments found for TAG 22 MD VS WALL AND PIPE 
+  👀 Found view: TAG 23 PL BELOW CEILING  (GUID=5d04be8d-8c95-4372-9904-95f25ef4756a) → vp0056.jpg
+    💬 Comment ID=23, Status=new, User=abner
+  👀 Found view: TAG 24 PL VS EE (GUID=aa966c2a-2e61-44b0-956f-8f550383a5ee) → vp0057.jpg
+    💬 Comment ID=24, Status=new, User=abner
+  👀 Found view: TAG 25 PL BELOW CEILING  (GUID=375be9d5-de70-41b7-8d7d-a4cff45c6ae6) → vp0058.jpg
+    💬 Comment ID=25, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 3-7
+  👀 Found view: TAG 26 PL VS EE (GUID=5097f62e-6052-4cee-a242-f465cd60cba6) → vp0059.jpg
+    💬 Comment ID=26, Status=new, User=abner
+  👀 Found view: TAG 27 MD VS PL  (GUID=e82ff5c5-b04e-4fcb-8bb5-aca36645c05f) → vp0060.jpg
+    💬 Comment ID=27, Status=new, User=abner
+  👀 Found view: TAG 28 PL VS EE (GUID=b0f1bfa9-f112-419b-b8da-bb85cc83029d) → vp0061.jpg
+    💬 Comment ID=28, Status=new, User=abner
+  👀 Found view: TAG 29 PL VS MD  (GUID=aebefd62-6c29-4388-be00-e5281d71363f) → vp0062.jpg
+    💬 Comment ID=29, Status=new, User=abner
+  👀 Found view: TAG 30 PL VS EE VS MD  (GUID=46f16322-e43e-465d-b678-edb133f8efa3) → vp0063.jpg
+    💬 Comment ID=30, Status=new, User=abner
+  👀 Found view: TAG 31 PL BELOW CEILING  (GUID=6d8a9b5f-1e27-4bff-9b22-d4216f01c5f5) → vp0064.jpg
+    💬 Comment ID=31, Status=new, User=abner
+  👀 Found view: TAG 32 PL VS EE (GUID=aad4ba6c-77b7-4fba-a28d-fdefd5bbdd3d) → vp0065.jpg
+    💬 Comment ID=32, Status=new, User=abner
+  👀 Found view: TAG 33 MD VS LIGHT  (GUID=0570fb3d-350b-4050-ab73-0b1b97327ad7) → vp0066.jpg
+    💬 Comment ID=33, Status=new, User=abner
+  👀 Found view: TAG 34 PL VS MD  (GUID=99abbcba-5f19-412e-9ff7-559ec7dfcabb) → vp0067.jpg
+    💬 Comment ID=34, Status=new, User=abner
+  👀 Found view: TAG 35 PL BELOW CEILING  (GUID=1989659c-5ba8-4bc4-b2a2-89fc42900773) → vp0068.jpg
+    💬 Comment ID=35, Status=new, User=abner
+  👀 Found view: TAG 36 PL OUT OF WALL  (GUID=ab75ff88-a67e-41d7-b0e4-13f6d9291572) → vp0069.jpg
+    💬 Comment ID=36, Status=new, User=abner
+  👀 Found view: TAG 37 PL BELOW CEILING  (GUID=fd0e8e20-0255-402c-9cc4-4cd0908812b3) → vp0070.jpg
+    💬 Comment ID=37, Status=new, User=abner
+  👀 Found view: TAG 38 MD VS EE (GUID=024deaf7-0b2e-4c13-bb65-b59dc63e873c) → vp0071.jpg
+    💬 Comment ID=38, Status=new, User=abner
+  👀 Found view: TAG 39 MD VS PL  (GUID=82f27835-7b4b-440d-8216-242c16c4b9b2) → vp0072.jpg
+    💬 Comment ID=39, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 8 
+  👀 Found view: TAG 40 PL IN CONFLICT  (GUID=ce0fabb7-1e4a-4e95-9bd7-9321433ef92d) → vp0073.jpg
+    💬 Comment ID=40, Status=new, User=abner
+  👀 Found view: TAG 41 PL VS MD  (GUID=2343a128-e5fb-4af7-a5ca-7820919a75d7) → vp0074.jpg
+    💬 Comment ID=41, Status=new, User=abner
+  👀 Found view: TAG 42 MD  (GUID=3dd92545-dfc2-4c35-8192-e0aaef8197ea) → vp0075.jpg
+    💬 Comment ID=42, Status=new, User=abner
+  👀 Found view: TAG 43 EE (GUID=ba35f232-b380-46b3-b78f-65170d5c0fce) → vp0076.jpg
+    💬 Comment ID=43, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 8.5
+  👀 Found view: TAG 44 SHEARWALL PENETRATIONS  (GUID=7c4276cb-d14e-4415-b2de-8fbdfc1578bb) → vp0077.jpg
+    💬 Comment ID=44, Status=new, User=abner
+  👀 Found view: TAG 45 SHEARWALL PENETRATIONS (GUID=bc66656d-4e42-4cca-94f8-cc3e7f62c984) → vp0078.jpg
+    💬 Comment ID=45, Status=new, User=abner
+  👀 Found view: TAG 46 SHEARWALL PENETRATIONS  (GUID=f71a516e-6d4f-4faa-b4bc-9e211ccf98ee) → vp0079.jpg
+    💬 Comment ID=46, Status=new, User=abner
+  👀 Found view: TAG 47 SHEARWALL PENETRATIONS (GUID=307df2c7-38dd-4369-84c3-b507b7b54a96) → vp0080.jpg
+    💬 Comment ID=47, Status=new, User=abner
+  👀 Found view: TAG 48 PIPE IN CONFLICT  (GUID=86a56fcb-2ddc-4451-b571-d93cfe35da30) → vp0081.jpg
+    💬 Comment ID=48, Status=new, User=abner
+  👀 Found view: TAG 49 PL VS MD, ST (GUID=2a9b0ae4-05bf-4fc8-9deb-7b8b42c43884) → vp0082.jpg
+    💬 Comment ID=49, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 9
+  👀 Found view: TAG 51 FD INSIDE SHEARWALL  (GUID=f0fbbe10-e268-4ded-82d4-264f7c4abb9a) → vp0083.jpg
+    💬 Comment ID=51, Status=new, User=abner
+  👀 Found view: TAG 52 MD BELOW CEILING (GUID=68ae66df-27f3-4d17-a26e-813bedc778f1) → vp0084.jpg
+    💬 Comment ID=52, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 9 > PRIORITY
+  👀 Found view: TAG 50 PIPES INSIDE BEAM  (GUID=d7739f76-6f9f-4e89-95a7-5954cc62f0e7) → vp0085.jpg
+    💬 Comment ID=50, Status=new, User=abner
+  👀 Found view: TAG 53 PL VS MD  (GUID=0adf65da-6b8d-45dc-aa81-44a8f4a5b1a5) → vp0086.jpg
+    💬 Comment ID=53, Status=new, User=abner
+  👀 Found view: TAG 54 PL VS MD  (GUID=31559b50-7e62-4b07-bcb2-2a1842a3d744) → vp0087.jpg
+    💬 Comment ID=54, Status=new, User=abner
+  👀 Found view: TAG 55 PL VS MD VS FP  (GUID=db557b8e-06c0-4d08-a6f8-b000b287a2a2) → vp0088.jpg
+    💬 Comment ID=55, Status=new, User=abner
+  👀 Found view: TAG 56 PL VS MD VS EE VS FP  (GUID=267ddb0a-10b5-49b1-b56c-f5bac34bba8c) → vp0089.jpg
+    💬 Comment ID=56, Status=new, User=abner
+  👀 Found view: TAG 57 PL CONFLICT WITH CEILING  (GUID=63f3cdb9-ebc1-46ec-89e0-8df3dab97293) → vp0090.jpg
+    💬 Comment ID=57, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 10
+  👀 Found view: TAG 58 PL EXPOSED  (GUID=a18fe9bb-aa9f-4888-96ed-9c776547bd03) → vp0091.jpg
+    💬 Comment ID=58, Status=new, User=abner
+  👀 Found view: TAG 59 MD IN CONFLICT  (GUID=2c61ae6d-0acc-46f5-a323-28ac5f599f11) → vp0092.jpg
+    💬 Comment ID=59, Status=new, User=abner
+  👀 Found view: TAG 60 PL OUT OF THE WALL  (GUID=649259f3-aee1-43c3-b234-9ee199cf550f) → vp0093.jpg
+    💬 Comment ID=60, Status=new, User=abner
+  👀 Found view: TAG 61 SHEARWALL PENETRATION (GUID=19cf8d59-efc5-4966-95c4-ba6a523eb839) → vp0094.jpg
+    💬 Comment ID=61, Status=new, User=abner
+  👀 Found view: TAG 62 SHEARWALL PENETRATION  (GUID=18edead6-23b9-4133-a163-5abb0eebd3ad) → vp0095.jpg
+    💬 Comment ID=62, Status=new, User=abner
+  👀 Found view: TAG 63 MD INSIDE THE SLAB (GUID=0be89d3b-b2c7-4008-8363-cbc20e2147be) → vp0096.jpg
+    💬 Comment ID=63, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 11 -24
+  👀 Found view: TAG 64 PL VS MD   (GUID=a9b432dc-25e8-4e35-8ba9-327461892a97) → vp0097.jpg
+    💬 Comment ID=64, Status=new, User=abner
+  👀 Found view: TAG 65 PL VS MD  (GUID=e015d62f-de30-42e5-af31-9197cf60398b) → vp0098.jpg
+    💬 Comment ID=65, Status=new, User=abner
+  👀 Found view: TAG 66 MD VS EE,PL  (GUID=3da7c7d8-4f82-4900-becd-9d31bffdf784) → vp0099.jpg
+    💬 Comment ID=66, Status=new, User=abner
+  👀 Found view: TAG 67 MD VS EE (GUID=22a04ac4-e232-42b2-9415-0bb51698ee75) → vp0100.jpg
+    💬 Comment ID=67, Status=new, User=abner
+  👀 Found view: TAG 68 MD VS PL  (GUID=8be0e2c5-dd66-4193-8245-6a33375c2ca5) → vp0101.jpg
+    💬 Comment ID=68, Status=new, User=abner
+  👀 Found view: TAG 69 MD VS EE (GUID=094c3f73-931f-4a48-a709-cc7f30092659) → vp0102.jpg
+    💬 Comment ID=69, Status=new, User=abner
+  👀 Found view: TAG 70 PL VS MD  (GUID=fc4445cb-c584-4c66-8431-a2769d48b833) → vp0103.jpg
+    💬 Comment ID=70, Status=new, User=abner
+  👀 Found view: TAG 71 PL VS MD  (GUID=9986feed-fa5f-4209-ab88-969c64dc2af4) → vp0104.jpg
+    💬 Comment ID=71, Status=new, User=abner
+  👀 Found view: TAG 72 PL VS MD  (GUID=99f4ce92-12e1-4532-b8f5-d2e9bcdb20c9) → vp0105.jpg
+    💬 Comment ID=72, Status=new, User=abner
+📂 Entering folder: CLASHES  > LEVEL 26
+  👀 Found view: TAG 74 DUCTWORK BELOW CEILING  (GUID=395de29b-0037-4371-b0fb-7b05fceb0472) → vp0106.jpg
+    💬 Comment ID=74, Status=new, User=abner
+  👀 Found view: TAG 75 DUCTWORK BELOW CEILING  (GUID=ac35aee6-d692-42f0-bc11-befbc2a2c666) → vp0107.jpg
+    💬 Comment ID=75, Status=new, User=abner
+  👀 Found view: TAG 76 PL VS MD  (GUID=83661e0a-7dbf-4941-93ac-dc0b03a160df) → vp0108.jpg
+    💬 Comment ID=76, Status=new, User=abner
+📂 Entering folder: CLASHES  > ROOF
+  👀 Found view: TAG 78 PL VS MD  (GUID=d18c7724-a469-4646-b49f-c7186eeca158) → vp0109.jpg
+    💬 Comment ID=78, Status=new, User=abner
