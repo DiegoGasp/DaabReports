@@ -8,14 +8,13 @@
 		<RootNamespace>DaabNavisExport</RootNamespace>
 	</PropertyGroup>
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-		<OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport\</OutputPath>
+		<OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport\Contents\2026\</OutputPath>
 	</PropertyGroup>
 	<ItemGroup>
 		<Reference Include="Autodesk.Navisworks.Api">
 			<HintPath>C:\Program Files\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Api.dll</HintPath>
 			<Private>false</Private>
 		</Reference>
-
 		<Reference Include="System.Drawing" />
 		<Reference Include="System.Windows.Forms" />
 	</ItemGroup>
