@@ -8,8 +8,8 @@ from typing import List, Optional, Sequence, Tuple
 
 
 CSV_FILE_NAME = "navisworks_views_comments.csv"
-IMAGE_FILE_PREFIX = "vp"
-
+CSV_FILE_STEM = Path(CSV_FILE_NAME).stem
+IMAGE_FILE_PREFIX = f"{CSV_FILE_STEM}_vp" if CSV_FILE_STEM else "vp_"
 
 
 def parse_createddate(created, log):

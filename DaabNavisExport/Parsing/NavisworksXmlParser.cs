@@ -12,7 +12,7 @@ namespace DaabNavisExport.Parsing
     {
         public const string CsvFileName = "navisworks_views_comments.csv";
         public const string DebugFileName = "debug.txt";
-        private const string ImageFilePrefix = "vp";
+        private const string ImageFileStem = "vp";
 
         public ParseResult Process(string xmlPath, bool streamDebug = false)
         {
@@ -40,9 +40,11 @@ namespace DaabNavisExport.Parsing
             var root = document.Root ?? throw new InvalidDataException("Invalid XML: missing root");
             var viewFolders = root.Element("viewpoints")?.Elements("viewfolder") ?? Enumerable.Empty<XElement>();
 
+            var imagePrefix = BuildImagePrefix();
+
             foreach (var folder in viewFolders)
             {
-                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, ImageFilePrefix, Log);
+                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefix, Log);
             }
 
             return new ParseResult(rows, debug);
@@ -144,7 +146,15 @@ namespace DaabNavisExport.Parsing
             foreach (var child in folder.Elements("viewfolder"))
             {
                 RecurseFolder(child, newPath, rows, seen, ref viewCounter, imagePrefix, log);
+            }
         }
+
+        private static string BuildImagePrefix()
+        {
+            var csvStem = Path.GetFileNameWithoutExtension(CsvFileName);
+            return string.IsNullOrWhiteSpace(csvStem)
+                ? $"{ImageFileStem}_"
+                : $"{csvStem}_{ImageFileStem}";
         }
 
         private static List<string?> BuildRow(

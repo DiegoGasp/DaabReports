@@ -313,9 +313,15 @@ namespace DaabNavisExport
                     continue;
                 }
 
+                var normalizedPath = imagePath!.Trim();
+                if (normalizedPath.Length == 0)
+                {
+                    continue;
+                }
+
                 if (!imageAssignments.ContainsKey(guid))
                 {
-                    imageAssignments.Add(guid, imagePath);
+                    imageAssignments.Add(guid, normalizedPath);
                 }
             }
 
@@ -333,8 +339,7 @@ namespace DaabNavisExport
                     Directory.CreateDirectory(targetDirectory);
                 }
 
-                var rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
-                if (!rendered)
+                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
                 {
                     rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
                 }
@@ -353,10 +358,17 @@ namespace DaabNavisExport
                     }
                 }
 
-                if (!rendered)
+                if (TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450)))
                 {
-                    Debug.WriteLine($"Unable to produce image for viewpoint {viewpoint.DisplayName} ({viewpoint.Guid}).");
+                    if (!File.Exists(targetPath))
+                    {
+                        Debug.WriteLine($"Thumbnail generation reported success but file not found at {targetPath}.");
+                    }
+
+                    continue;
                 }
+
+                Debug.WriteLine($"No renderer succeeded for viewpoint {viewpoint.DisplayName} (GUID={viewpoint.Guid}).");
             }
         }
 
@@ -366,21 +378,36 @@ namespace DaabNavisExport
             {
                 TryApplyViewpoint(document, viewpoint);
 
-                var activeView = document.ActiveView;
+                var activeViewProperty = document.GetType().GetProperty("ActiveView");
+                var activeView = activeViewProperty?.GetValue(document);
                 if (activeView == null)
                 {
                     return false;
                 }
 
-                var style = ImageGenerationStyle.ScenePlusOverlay;
+                var viewType = activeView.GetType();
 
-                if (activeView.SaveToImage(targetPath, style, size.Width, size.Height))
+                if (TryInvokeViewToFile(activeView, viewType, "RenderToImage", targetPath, size))
                 {
-                    return File.Exists(targetPath);
+                    return true;
                 }
 
-                var generated = activeView.GenerateImage(style, size.Width, size.Height);
-                if (TrySaveNavisImageToJpeg(generated, targetPath))
+                if (TryInvokeViewToFile(activeView, viewType, "SaveToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryInvokeViewWithStyle(activeView, viewType, "RenderToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryInvokeViewWithStyle(activeView, viewType, "SaveToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryGenerateImage(activeView, viewType, targetPath, size))
                 {
                     return true;
                 }
@@ -439,166 +466,258 @@ namespace DaabNavisExport
             return false;
         }
 
-        private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
+        private static bool TryGenerateThumbnail(SavedViewpoint viewpoint, string targetPath, Size size)
         {
             try
             {
                 var type = viewpoint.GetType();
 
                 var sizeMethod = type.GetMethod("GenerateThumbnail", new[] { typeof(Size) });
-                var sizedResult = sizeMethod?.Invoke(viewpoint, new object[] { size });
-                var sizedBitmap = TryConvertToBitmap(sizedResult);
-                if (sizedBitmap != null)
+                if (sizeMethod != null)
                 {
-                    return sizedBitmap;
+                    var result = sizeMethod.Invoke(viewpoint, new object[] { size });
+                    if (TrySaveImageToPath(result, targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
-                var noArgResult = noArgMethod?.Invoke(viewpoint, Array.Empty<object>());
-                var noArgBitmap = TryConvertToBitmap(noArgResult);
-                if (noArgBitmap != null)
+                if (noArgMethod != null)
                 {
-                    return noArgBitmap;
+                    var result = noArgMethod.Invoke(viewpoint, Array.Empty<object>());
+                    if (TrySaveImageToPath(result, targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var property = type.GetProperty("Thumbnail");
-                var propertyResult = property?.GetValue(viewpoint);
-                var propertyBitmap = TryConvertToBitmap(propertyResult);
-                if (propertyBitmap != null)
+                if (property != null)
                 {
-                    return propertyBitmap;
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
-            }
-
-            return null;
-        }
-
-        private static void SaveBitmapToJpeg(Bitmap bitmap, string targetPath)
-        {
-            bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-        }
-
-        private static bool TrySaveNavisImageToJpeg(Autodesk.Navisworks.Api.Image? navisImage, string targetPath)
-        {
-            if (navisImage == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                using (navisImage)
-                {
-                    try
+                    var value = property.GetValue(viewpoint);
+                    if (TrySaveImageToPath(value, targetPath))
                     {
-                        navisImage.Save(targetPath, ImageFileType.Jpeg);
-                        return File.Exists(targetPath);
-                    }
-                    catch (MissingMethodException)
-                    {
-                        using var bitmap = TryConvertNavisImageToBitmap(navisImage);
-                        if (bitmap == null)
-                        {
-                            return false;
-                        }
-
-                        SaveBitmapToJpeg(bitmap, targetPath);
-                        return File.Exists(targetPath);
+                        return true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to save Navisworks image to {targetPath}: {ex.Message}");
+                Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
             }
 
             return false;
         }
 
-        private static Bitmap? TryConvertToBitmap(object? candidate)
+        private static bool TryInvokeViewToFile(object activeView, Type viewType, string methodName, string targetPath, Size size)
         {
-            switch (candidate)
+            var method = viewType.GetMethod(methodName, new[] { typeof(string), typeof(int), typeof(int) });
+            if (method == null)
             {
-                case null:
-                    return null;
-                case Bitmap bitmap:
-                    return bitmap;
-                case Autodesk.Navisworks.Api.Image navisImage:
-                    return TryConvertNavisImageToBitmap(navisImage);
+                return false;
             }
 
-            var candidateType = candidate.GetType();
-            var fullName = candidateType.FullName ?? string.Empty;
-            if (string.Equals(fullName, "Autodesk.Navisworks.Api.Interop.LcOpSavedItemCommentImage", StringComparison.Ordinal))
-            {
-                var tempPath = Path.GetTempFileName();
-                try
-                {
-                    var saveMethod = candidateType.GetMethod("Save", new[] { typeof(string), typeof(ImageFileType) });
-                    if (saveMethod != null)
-                    {
-                        saveMethod.Invoke(candidate, new object[] { tempPath, ImageFileType.Jpeg });
-                        if (File.Exists(tempPath))
-                        {
-                            return new Bitmap(tempPath);
-                        }
-                    }
-
-                    var toBitmapMethod = candidateType.GetMethod("ToBitmap", Type.EmptyTypes);
-                    if (toBitmapMethod?.Invoke(candidate, Array.Empty<object>()) is Bitmap reflectedBitmap)
-                    {
-                        return reflectedBitmap;
-                    }
-                }
-                finally
-                {
-                    try
-                    {
-                        if (File.Exists(tempPath))
-                        {
-                            File.Delete(tempPath);
-                        }
-                    }
-                    catch
-                    {
-                        // ignore cleanup failures
-                    }
-                }
-            }
-
-            return null;
+            method.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
+            return File.Exists(targetPath);
         }
 
-        private static Bitmap? TryConvertNavisImageToBitmap(Autodesk.Navisworks.Api.Image navisImage)
+        private static bool TryInvokeViewWithStyle(object activeView, Type viewType, string methodName, string targetPath, Size size)
         {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == methodName))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 4)
+                {
+                    continue;
+                }
+
+                if (parameters[0].ParameterType != typeof(string) ||
+                    parameters[2].ParameterType != typeof(int) ||
+                    parameters[3].ParameterType != typeof(int))
+                {
+                    continue;
+                }
+
+                var styleValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                if (styleValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        styleValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size)
+        {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == "GenerateImage"))
+            {
+                var parameters = method.GetParameters();
+                object? result = null;
+
+                if (parameters.Length == 2 &&
+                    parameters[0].ParameterType == typeof(int) &&
+                    parameters[1].ParameterType == typeof(int))
+                {
+                    result = method.Invoke(activeView, new object[] { size.Width, size.Height });
+                }
+                else if (parameters.Length == 3 &&
+                         parameters[1].ParameterType == typeof(int) &&
+                         parameters[2].ParameterType == typeof(int))
+                {
+                    var styleValue = ResolveEnumValue(parameters[0].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                    if (styleValue == null)
+                    {
+                        if (parameters[0].ParameterType.IsValueType)
+                        {
+                            styleValue = Activator.CreateInstance(parameters[0].ParameterType);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    result = method.Invoke(activeView, new[] { styleValue, size.Width, size.Height });
+                }
+
+                if (TrySaveImageToPath(result, targetPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TrySaveImageToPath(object? imageObject, string targetPath)
+        {
+            if (imageObject == null)
+            {
+                return false;
+            }
+
+            if (imageObject is Bitmap bitmap)
+            {
+                using (bitmap)
+                {
+                    bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                }
+
+                return File.Exists(targetPath);
+            }
+
+            var disposable = imageObject as IDisposable;
             try
             {
-                using var memory = new MemoryStream();
-                var imageType = navisImage.GetType();
-                var saveToStream = imageType.GetMethod("Save", new[] { typeof(Stream), typeof(ImageFileType) });
-                if (saveToStream != null)
+                if (TrySaveViaReflection(imageObject, targetPath))
                 {
-                    saveToStream.Invoke(navisImage, new object[] { memory, ImageFileType.Jpeg });
-                    memory.Position = 0;
-                    return new Bitmap(memory);
+                    return true;
                 }
 
-                var toBitmap = imageType.GetMethod("ToBitmap", Type.EmptyTypes);
-                if (toBitmap?.Invoke(navisImage, Array.Empty<object>()) is Bitmap bitmap)
+                var toBitmapMethod = imageObject.GetType().GetMethod("ToBitmap", Type.EmptyTypes);
+                if (toBitmapMethod?.Invoke(imageObject, Array.Empty<object>()) is Bitmap converted)
                 {
-                    return bitmap;
+                    using (converted)
+                    {
+                        converted.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    }
+
+                    return File.Exists(targetPath);
                 }
             }
-            catch (Exception ex)
+            finally
             {
-                Debug.WriteLine($"Failed to convert Navisworks image to bitmap: {ex.Message}");
+                disposable?.Dispose();
             }
 
-            return null;
+            return false;
         }
-    }
+
+        private static bool TrySaveViaReflection(object imageObject, string targetPath)
+        {
+            var type = imageObject.GetType();
+
+            var saveString = type.GetMethod("Save", new[] { typeof(string) });
+            if (saveString != null)
+            {
+                saveString.Invoke(imageObject, new object[] { targetPath });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var method in type.GetMethods().Where(m => m.Name == "Save"))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string))
+                {
+                    continue;
+                }
+
+                var formatValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Jpeg", "JPEG", "Jpg" });
+                if (formatValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        formatValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                method.Invoke(imageObject, new[] { targetPath, formatValue });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            var writeToFile = type.GetMethod("WriteToFile", new[] { typeof(string) });
+            if (writeToFile != null)
+            {
+                writeToFile.Invoke(imageObject, new object[] { targetPath });
+                return File.Exists(targetPath);
+            }
+
+            return false;
+        }
+
+        private static object? ResolveEnumValue(Type enumType, IReadOnlyList<string> preferredNames)
+        {
+            if (!enumType.IsEnum)
+            {
+                return null;
+            }
+
+            var names = Enum.GetNames(enumType);
+            foreach (var preferred in preferredNames)
+            {
+                var match = names.FirstOrDefault(n => string.Equals(n, preferred, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    return Enum.Parse(enumType, match);
+                }
+            }
+
+            return names.Length > 0 ? Enum.Parse(enumType, names[0]) : null;
+        }
+        }
 }
