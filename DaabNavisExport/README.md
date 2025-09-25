@@ -49,6 +49,7 @@ DaabNavisExport/
   </Components>
 </ApplicationPackage>
 ```
+
 3. Launch Navisworks 2026 and open the **Add-Ins** tab. You should find **Daab Navis Export** listed. Running it will produce the following structure (matching the sample project layout):
 
    ```
@@ -66,5 +67,6 @@ DaabNavisExport/
 ## Notes
 
 - The parser honours the same duplicate filtering, logging format, and date parsing rules as the original Python implementation in `1717 N FLAG/DB/ParseXml.py`.
-- Image thumbnails are generated at 800×450 resolution; adjust `GenerateThumbnail` parameters in `ExportPlugin.cs` if a different size is required.
+
+- Image thumbnails are generated at 800×450 resolution; adjust the size passed to `TryGenerateThumbnail` in `ExportPlugin.cs` if a different size is required.
 - If the add-in is executed without any saved viewpoints, the XML and CSV will still be generated but remain empty aside from headers.

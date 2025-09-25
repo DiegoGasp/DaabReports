@@ -12,6 +12,8 @@ using Autodesk.Navisworks.Api;
 using Autodesk.Navisworks.Api.Plugins;
 using DaabNavisExport.Parsing;
 using DaabNavisExport.Utilities;
+using NavisApplication = Autodesk.Navisworks.Api.Application;
+
 
 namespace DaabNavisExport
 {
@@ -29,13 +31,13 @@ namespace DaabNavisExport
         {
             try
             {
-                if (Application.ActiveDocument == null)
+                if (NavisApplication.ActiveDocument == null)
                 {
                     MessageBox.Show("No active document open.", "Daab Navis Export", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return 0;
                 }
 
-                var document = Application.ActiveDocument;
+                var document = NavisApplication.ActiveDocument;
                 var outputDirectory = ResolveOutputDirectory(parameters);
                 var exportContext = BuildExportContext(document, outputDirectory);
 
@@ -132,9 +134,13 @@ namespace DaabNavisExport
             writer.WriteAttributeString("filepath", sourcePath);
 
             writer.WriteStartElement("viewpoints");
-            foreach (SavedItem item in document.SavedViewpoints.RootItems)
+            var rootItem = document.SavedViewpoints?.RootItem;
+            if (rootItem != null)
             {
-                WriteSavedItem(writer, item, context);
+                foreach (SavedItem item in rootItem.Children)
+                {
+                    WriteSavedItem(writer, item, context);
+                }
             }
             writer.WriteEndElement(); // viewpoints
 
@@ -284,7 +290,7 @@ namespace DaabNavisExport
 
             Directory.CreateDirectory(context.ImagesDirectory);
 
-            var imageAssignments = new Dictionary<Guid, string>(StringComparer.OrdinalIgnoreCase);
+            var imageAssignments = new Dictionary<Guid, string>();
             foreach (var row in rows)
             {
                 if (row.Count <= 10)
@@ -318,7 +324,8 @@ namespace DaabNavisExport
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
-                using var bitmap = viewpoint.GenerateThumbnail(new Size(800, 450));
+
+                using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
                 if (bitmap == null)
                 {
                     continue;
@@ -327,7 +334,36 @@ namespace DaabNavisExport
                 bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
             }
         }
+        private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
+        {
+            try
+            {
+                var type = viewpoint.GetType();
+
+                var sizeMethod = type.GetMethod("GenerateThumbnail", new[] { typeof(Size) });
+                if (sizeMethod?.Invoke(viewpoint, new object[] { size }) is Bitmap generated)
+                {
+                    return generated;
+                }
+
+                var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
+                if (noArgMethod?.Invoke(viewpoint, Array.Empty<object>()) is Bitmap generatedNoArg)
+                {
+                    return generatedNoArg;
+                }
+
+                var property = type.GetProperty("Thumbnail");
+                if (property?.GetValue(viewpoint) is Bitmap thumbnail)
+                {
+                    return thumbnail;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
+            }
+
+            return null;
+        }
     }
 }
-
-
