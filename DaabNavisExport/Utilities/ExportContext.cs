@@ -36,7 +36,4 @@ namespace DaabNavisExport.Utilities
 
         public List<SavedViewpoint> ViewSequence { get; }
     }
-
 }
-
-

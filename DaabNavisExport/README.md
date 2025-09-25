@@ -7,9 +7,7 @@ This folder contains a Navisworks 2026 add-in that automates the Daab Reports ex
 3. Writes a `debug.txt` log that mirrors the diagnostics produced by the Python tooling.
 4. Exports viewport images (JPEG) whose filenames align with the `ImagePath` column produced by the parser.
 
-
 The resulting files are written beneath `%USERPROFILE%\Documents\DaabNavisExport\<Project Name>` by default. You can supply a different output directory by passing a path parameter in the Navisworks **Add-Ins** window when you launch the plugin.
-
 
 ## Project layout
 
@@ -33,7 +31,6 @@ DaabNavisExport/
 1. Open the solution folder in Visual Studio 2022.
 
 2. Add a reference to the Navisworks 2026 API assembly `Autodesk.Navisworks.Api.dll` (located in `C:\Program Files\Autodesk\Navisworks Manage 2026\api\`). Set **Copy Local = false**. The plug-in reflects over the optional DocumentParts types at runtime, so no additional DLL reference is required even if `Autodesk.Navisworks.Api.DocumentParts.dll` is not installed.
-
 
 3. Build the project in **Release** mode. The output `DaabNavisExport.dll` will be placed in `bin/Release`.
 
