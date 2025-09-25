@@ -18,7 +18,8 @@ namespace DaabNavisExport
     [Plugin("DaabNavisExport", "DAAB", DisplayName = "Daab Navis Export", ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format", LoadForCanExecute = true)]
     public class ExportPlugin : AddInPlugin
     {
-        private const string ImagesFolderName = "ViewpointImages";
+        private const string DbFolderName = "DB";
+        private const string ImagesFolderName = "Images";
 
         public override int Execute(params string[] parameters)
         {
@@ -32,20 +33,18 @@ namespace DaabNavisExport
 
                 var document = Application.ActiveDocument;
                 var outputDirectory = ResolveOutputDirectory(parameters);
-                Directory.CreateDirectory(outputDirectory);
-
                 var exportContext = BuildExportContext(document, outputDirectory);
 
                 ExportViewpointsToXml(document, exportContext);
 
                 var parser = new NavisworksXmlParser();
                 var parseResult = parser.Process(exportContext.XmlPath);
-                parser.WriteOutputs(parseResult, exportContext.OutputDirectory);
+                parser.WriteOutputs(parseResult, exportContext.DbDirectory);
 
                 ExportViewpointImages(exportContext, parseResult.Rows);
 
                 MessageBox.Show(
-                    $"Export complete.\nXML: {exportContext.XmlPath}\nCSV: {Path.Combine(exportContext.OutputDirectory, NavisworksXmlParser.CsvFileName)}",
+                    $"Export complete.\nProject folder: {exportContext.ProjectDirectory}\nXML: {exportContext.XmlPath}\nCSV: {Path.Combine(exportContext.DbDirectory, NavisworksXmlParser.CsvFileName)}",
                     "Daab Navis Export",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -61,13 +60,36 @@ namespace DaabNavisExport
 
         private static ExportContext BuildExportContext(Document document, string outputDirectory)
         {
-            var fileStem = string.IsNullOrWhiteSpace(document.FileName)
-                ? $"Navisworks_{DateTime.Now:yyyyMMdd_HHmmss}"
-                : PathSanitizer.ToSafeFileName(Path.GetFileNameWithoutExtension(document.FileName));
+            Directory.CreateDirectory(outputDirectory);
 
-            var xmlFile = Path.Combine(outputDirectory, fileStem + ".xml");
+            var projectFolderName = ResolveProjectFolderName(document);
+            var projectDirectory = Path.Combine(outputDirectory, projectFolderName);
+            var dbDirectory = Path.Combine(projectDirectory, DbFolderName);
+            var imagesDirectory = Path.Combine(projectDirectory, ImagesFolderName);
 
-            return new ExportContext(document, outputDirectory, xmlFile);
+            Directory.CreateDirectory(projectDirectory);
+            Directory.CreateDirectory(dbDirectory);
+            Directory.CreateDirectory(imagesDirectory);
+
+            var xmlFile = Path.Combine(dbDirectory, "DB.xml");
+
+            return new ExportContext(document, outputDirectory, projectDirectory, dbDirectory, imagesDirectory, xmlFile);
+        }
+
+        private static string ResolveProjectFolderName(Document document)
+        {
+            var sourceName = document.FileName;
+            if (!string.IsNullOrWhiteSpace(sourceName))
+            {
+                var stem = Path.GetFileNameWithoutExtension(sourceName);
+                var sanitized = PathSanitizer.ToSafeFileName(stem);
+                if (!string.IsNullOrWhiteSpace(sanitized))
+                {
+                    return sanitized;
+                }
+            }
+
+            return $"Navisworks_{DateTime.Now:yyyyMMdd_HHmmss}";
         }
 
         private static string ResolveOutputDirectory(IReadOnlyList<string> parameters)
@@ -93,6 +115,8 @@ namespace DaabNavisExport
                 IndentChars = "  ",
                 NewLineOnAttributes = false
             };
+
+            Directory.CreateDirectory(Path.GetDirectoryName(context.XmlPath)!);
 
             using var writer = XmlWriter.Create(context.XmlPath, settings);
             writer.WriteStartDocument();
@@ -193,8 +217,7 @@ namespace DaabNavisExport
                 return;
             }
 
-            var imagesDirectory = Path.Combine(context.OutputDirectory, ImagesFolderName);
-            Directory.CreateDirectory(imagesDirectory);
+            Directory.CreateDirectory(context.ImagesDirectory);
 
             var imageAssignments = new Dictionary<Guid, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var row in rows)
@@ -229,7 +252,7 @@ namespace DaabNavisExport
                     continue;
                 }
 
-                var targetPath = Path.Combine(imagesDirectory, imageFile);
+                var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
                 using var bitmap = viewpoint.GenerateThumbnail(new Size(800, 450));
                 if (bitmap == null)
                 {

@@ -48,6 +48,8 @@ namespace DaabNavisExport.Parsing
 
         public void WriteOutputs(ParseResult result, string outputDirectory)
         {
+            Directory.CreateDirectory(outputDirectory);
+
             var csvPath = Path.Combine(outputDirectory, CsvFileName);
             using (var writer = new StreamWriter(csvPath, false, new UTF8Encoding(false)))
             {

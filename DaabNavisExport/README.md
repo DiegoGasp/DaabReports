@@ -7,7 +7,9 @@ This folder contains a Navisworks 2026 add-in that automates the Daab Reports ex
 3. Writes a `debug.txt` log that mirrors the diagnostics produced by the Python tooling.
 4. Exports viewport images (JPEG) whose filenames align with the `ImagePath` column produced by the parser.
 
-The resulting files are written to `%USERPROFILE%\Documents\DaabNavisExport` by default. You can supply a different output directory by passing a path parameter in the Navisworks **Add-Ins** window when you launch the plugin.
+
+The resulting files are written beneath `%USERPROFILE%\Documents\DaabNavisExport\<Project Name>` by default. You can supply a different output directory by passing a path parameter in the Navisworks **Add-Ins** window when you launch the plugin.
+
 
 ## Project layout
 
@@ -50,12 +52,19 @@ DaabNavisExport/
   </Components>
 </ApplicationPackage>
 ```
+3. Launch Navisworks 2026 and open the **Add-Ins** tab. You should find **Daab Navis Export** listed. Running it will produce the following structure (matching the sample project layout):
 
-3. Launch Navisworks 2026 and open the **Add-Ins** tab. You should find **Daab Navis Export** listed. Running it will produce:
-   - `*.xml` – the exported Navisworks viewpoints exchange file.
-   - `navisworks_views_comments.csv` – CSV compatible with the Power BI dashboard.
-   - `debug.txt` – execution log mirroring the Python script output.
-   - `ViewpointImages/vp####.jpg` – rendered viewpoint thumbnails referenced by the CSV.
+   ```
+   <Project Name>/
+   ├── DB/
+   │   ├── DB.xml
+   │   ├── debug.txt
+   │   └── navisworks_views_comments.csv
+   └── Images/
+       ├── vp0001.jpg
+       ├── vp0002.jpg
+       └── ...
+   ```
 
 ## Notes
 
