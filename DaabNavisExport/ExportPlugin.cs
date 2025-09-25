@@ -368,7 +368,6 @@ namespace DaabNavisExport
                 {
                     continue;
                 }
-
                 var guidValue = row.Count > guidIndex ? row[guidIndex] : null;
                 var imageValue = row.Count > imageIndex ? row[imageIndex] : null;
 
@@ -406,7 +405,6 @@ namespace DaabNavisExport
                 {
                     Directory.CreateDirectory(targetDirectory);
                 }
-
                 var displayName = viewpoint.DisplayName ?? viewpoint.Guid.ToString();
                 var progressMessage = $"Rendering {displayName} ({index + 1}/{totalViewpoints})";
                 progress.Report(completedSteps, progressMessage + "...");
@@ -600,7 +598,6 @@ namespace DaabNavisExport
 
             return false;
         }
-
         private static bool TryInvokeViewToFile(object activeView, Type viewType, string methodName, string targetPath, Size size, ExportLog log)
         {
             var method = viewType.GetMethod(methodName, new[] { typeof(string), typeof(int), typeof(int) });
@@ -649,7 +646,6 @@ namespace DaabNavisExport
                         continue;
                     }
                 }
-
                 log.Info($"Invoking {method.Name}(string, {parameters[1].ParameterType.Name}, int, int) with style {styleValue}.");
                 method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
                 if (File.Exists(targetPath))
@@ -660,7 +656,6 @@ namespace DaabNavisExport
 
             return false;
         }
-
         private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size, ExportLog log)
         {
             foreach (var method in viewType.GetMethods().Where(m => m.Name == "GenerateImage"))
@@ -719,7 +714,6 @@ namespace DaabNavisExport
                 {
                     bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
                 }
-
                 log.Info($"Saved System.Drawing.Bitmap to {targetPath}.");
                 return File.Exists(targetPath);
             }
@@ -813,6 +807,7 @@ namespace DaabNavisExport
                 }
 
                 return created;
+
             }
 
             return false;
