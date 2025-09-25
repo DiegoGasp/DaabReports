@@ -14,6 +14,7 @@ using DaabNavisExport.Parsing;
 using DaabNavisExport.Utilities;
 using NavisApplication = Autodesk.Navisworks.Api.Application;
 
+
 namespace DaabNavisExport
 {
     [Plugin(
@@ -323,6 +324,7 @@ namespace DaabNavisExport
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
+
                 using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
                 if (bitmap == null)
                 {
@@ -332,7 +334,6 @@ namespace DaabNavisExport
                 bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
             }
         }
-
         private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
         {
             try

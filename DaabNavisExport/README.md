@@ -29,7 +29,9 @@ DaabNavisExport/
 ## Building
 
 1. Open the solution folder in Visual Studio 2022.
+
 2. Add a reference to the Navisworks 2026 API assembly `Autodesk.Navisworks.Api.dll` (located in `C:\Program Files\Autodesk\Navisworks Manage 2026\api\`). Set **Copy Local = false**. The plug-in reflects over the optional DocumentParts types at runtime, so no additional DLL reference is required even if `Autodesk.Navisworks.Api.DocumentParts.dll` is not installed.
+
 3. Build the project in **Release** mode. The output `DaabNavisExport.dll` will be placed in `bin/Release`.
 
 ## Deployment
@@ -65,5 +67,6 @@ DaabNavisExport/
 ## Notes
 
 - The parser honours the same duplicate filtering, logging format, and date parsing rules as the original Python implementation in `1717 N FLAG/DB/ParseXml.py`.
+
 - Image thumbnails are generated at 800×450 resolution; adjust the size passed to `TryGenerateThumbnail` in `ExportPlugin.cs` if a different size is required.
 - If the add-in is executed without any saved viewpoints, the XML and CSV will still be generated but remain empty aside from headers.
