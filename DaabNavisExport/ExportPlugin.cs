@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -326,6 +327,16 @@ namespace DaabNavisExport
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
+                var targetDirectory = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
+
+                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
+                {
+                    continue;
+                }
 
                 using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
                 if (bitmap == null)
@@ -334,7 +345,111 @@ namespace DaabNavisExport
                 }
 
                 bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                if (!File.Exists(targetPath))
+                {
+                    Debug.WriteLine($"Thumbnail save reported success but file not found at {targetPath}.");
+                }
             }
+        }
+
+        private static bool TryRenderViewpointImage(Document document, SavedViewpoint viewpoint, string targetPath, Size size)
+        {
+            try
+            {
+                TryApplyViewpoint(document, viewpoint);
+
+                var activeViewProperty = document.GetType().GetProperty("ActiveView");
+                var activeView = activeViewProperty?.GetValue(document);
+                if (activeView == null)
+                {
+                    return false;
+                }
+
+                var viewType = activeView.GetType();
+
+                var renderMethod = viewType.GetMethod("RenderToImage", new[] { typeof(string), typeof(int), typeof(int) });
+                if (renderMethod != null)
+                {
+                    renderMethod.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
+                    if (File.Exists(targetPath))
+                    {
+                        return true;
+                    }
+                }
+
+                var saveMethod = viewType.GetMethod("SaveToImage", new[] { typeof(string), typeof(int), typeof(int) });
+                if (saveMethod != null)
+                {
+                    saveMethod.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
+                    if (File.Exists(targetPath))
+                    {
+                        return true;
+                    }
+                }
+
+                var generateMethod = viewType.GetMethod("GenerateImage", new[] { typeof(int), typeof(int) });
+                if (generateMethod?.Invoke(activeView, new object[] { size.Width, size.Height }) is Bitmap generated)
+                {
+                    using (generated)
+                    {
+                        generated.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    }
+
+                    return File.Exists(targetPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to render viewpoint image for {viewpoint.DisplayName}: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        private static bool TryApplyViewpoint(Document document, SavedViewpoint viewpoint)
+        {
+            try
+            {
+                var applied = false;
+                var savedViewpoints = document.SavedViewpoints;
+                if (savedViewpoints != null)
+                {
+                    var currentProp = savedViewpoints.GetType().GetProperty("CurrentSavedViewpoint");
+                    if (currentProp != null && currentProp.CanWrite)
+                    {
+                        currentProp.SetValue(savedViewpoints, viewpoint);
+                        applied = true;
+                    }
+                }
+
+                var applyMethod = viewpoint.GetType().GetMethod("ApplyToDocument", new[] { typeof(Document) });
+                if (applyMethod != null)
+                {
+                    applyMethod.Invoke(viewpoint, new object[] { document });
+                    applied = true;
+                }
+
+                var viewpointProperty = viewpoint.GetType().GetProperty("Viewpoint");
+                var navisViewpoint = viewpointProperty?.GetValue(viewpoint);
+                if (navisViewpoint != null)
+                {
+                    var documentType = document.GetType();
+                    var currentViewpointProperty = documentType.GetProperty("CurrentViewpoint");
+                    if (currentViewpointProperty != null && currentViewpointProperty.CanWrite)
+                    {
+                        currentViewpointProperty.SetValue(document, navisViewpoint);
+                        applied = true;
+                    }
+                }
+
+                return applied;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to apply viewpoint {viewpoint.DisplayName}: {ex.Message}");
+            }
+
+            return false;
         }
 
         private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
