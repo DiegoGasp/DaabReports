@@ -12,6 +12,7 @@ namespace DaabNavisExport.Parsing
     {
         public const string CsvFileName = "navisworks_views_comments.csv";
         public const string DebugFileName = "debug.txt";
+        private const string ImageFileStem = "vp";
 
         public ParseResult Process(string xmlPath, bool streamDebug = false)
         {
@@ -38,9 +39,11 @@ namespace DaabNavisExport.Parsing
             var root = document.Root ?? throw new InvalidDataException("Invalid XML: missing root");
             var viewFolders = root.Element("viewpoints")?.Elements("viewfolder") ?? Enumerable.Empty<XElement>();
 
+            var imagePrefixBase = BuildImagePrefix();
+
             foreach (var folder in viewFolders)
             {
-                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, Log);
+                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefixBase, Log);
             }
 
             return new ParseResult(rows, debug);
@@ -106,6 +109,7 @@ namespace DaabNavisExport.Parsing
             ICollection<List<string?>> rows,
             ISet<(string? Guid, string? CommentId)> seen,
             ref int viewCounter,
+            string imagePrefix,
             Action<string> log)
         {
             var folderName = folder.Attribute("name")?.Value ?? string.Empty;
@@ -118,7 +122,7 @@ namespace DaabNavisExport.Parsing
                 viewCounter++;
                 var viewName = view.Attribute("name")?.Value ?? string.Empty;
                 var guid = view.Attribute("guid")?.Value ?? string.Empty;
-                var imageFile = $"vp{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
+                var imageFile = $"{imagePrefix}{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
 
                 log($"  👀 Found view: {viewName} (GUID={guid}) → {imageFile}");
 
@@ -140,8 +144,16 @@ namespace DaabNavisExport.Parsing
 
             foreach (var child in folder.Elements("viewfolder"))
             {
-                RecurseFolder(child, newPath, rows, seen, ref viewCounter, log);
+                RecurseFolder(child, newPath, rows, seen, ref viewCounter, imagePrefix, log);
             }
+        }
+
+        private static string BuildImagePrefix()
+        {
+            var csvStem = Path.GetFileNameWithoutExtension(CsvFileName);
+            return string.IsNullOrWhiteSpace(csvStem)
+                ? $"{ImageFileStem}_"
+                : $"{csvStem}_{ImageFileStem}";
         }
 
         private static List<string?> BuildRow(
