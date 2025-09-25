@@ -8,7 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Autodesk.Navisworks.Api" />
-    <Reference Include="Autodesk.Navisworks.Api.DocumentParts" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>

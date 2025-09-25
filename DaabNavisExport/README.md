@@ -31,10 +31,10 @@ DaabNavisExport/
 ## Building
 
 1. Open the solution folder in Visual Studio 2022.
-2. Add references to the Navisworks 2026 API assemblies:
-   - `Autodesk.Navisworks.Api.dll`
-   - `Autodesk.Navisworks.Api.DocumentParts.dll`
-   These are typically located in `C:\Program Files\Autodesk\Navisworks Manage 2026\api\`. Ensure the references are set to **Copy Local = false**.
+
+2. Add a reference to the Navisworks 2026 API assembly `Autodesk.Navisworks.Api.dll` (located in `C:\Program Files\Autodesk\Navisworks Manage 2026\api\`). Set **Copy Local = false**. The plug-in reflects over the optional DocumentParts types at runtime, so no additional DLL reference is required even if `Autodesk.Navisworks.Api.DocumentParts.dll` is not installed.
+
+
 3. Build the project in **Release** mode. The output `DaabNavisExport.dll` will be placed in `bin/Release`.
 
 ## Deployment

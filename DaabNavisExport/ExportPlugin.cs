@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
@@ -8,7 +9,6 @@ using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using Autodesk.Navisworks.Api;
-using Autodesk.Navisworks.Api.DocumentParts.Comments;
 using Autodesk.Navisworks.Api.Plugins;
 using DaabNavisExport.Parsing;
 using DaabNavisExport.Utilities;
@@ -173,39 +173,100 @@ namespace DaabNavisExport
             writer.WriteAttributeString("name", viewpoint.DisplayName ?? string.Empty);
             writer.WriteAttributeString("guid", viewpoint.Guid.ToString());
 
-            var comments = viewpoint.Comments;
-            if (comments != null && comments.Count > 0)
-            {
-                writer.WriteStartElement("comments");
-                foreach (Comment comment in comments)
-                {
-                    writer.WriteStartElement("comment");
-                    writer.WriteAttributeString("id", comment.Guid.ToString());
-                    writer.WriteAttributeString("status", comment.Status.ToString());
-                    writer.WriteElementString("user", comment.Author ?? string.Empty);
-                    writer.WriteElementString("body", comment.Body ?? string.Empty);
-                    WriteCreatedDate(writer, comment.CreationDate);
-                    writer.WriteEndElement();
-                }
-
-                writer.WriteEndElement();
-            }
+            WriteComments(writer, viewpoint);
 
             writer.WriteEndElement();
         }
 
-        private static void WriteCreatedDate(XmlWriter writer, DateTime created)
+        private static void WriteComments(XmlWriter writer, SavedViewpoint viewpoint)
         {
-            if (created.Year < 1900)
+            try
+            {
+                var commentsProperty = viewpoint.GetType().GetProperty("Comments");
+                if (commentsProperty == null)
+                {
+                    return;
+                }
+
+                if (commentsProperty.GetValue(viewpoint) is not IEnumerable comments)
+                {
+                    return;
+                }
+
+                var anyComments = false;
+                foreach (var comment in comments)
+                {
+                    if (comment == null)
+                    {
+                        continue;
+                    }
+
+                    var commentType = comment.GetType();
+                    var guid = commentType.GetProperty("Guid")?.GetValue(comment)?.ToString();
+                    var status = commentType.GetProperty("Status")?.GetValue(comment)?.ToString();
+                    var author = commentType.GetProperty("Author")?.GetValue(comment)?.ToString();
+                    var body = commentType.GetProperty("Body")?.GetValue(comment)?.ToString();
+                    var creationDate = commentType.GetProperty("CreationDate")?.GetValue(comment);
+
+                    if (!anyComments)
+                    {
+                        writer.WriteStartElement("comments");
+                        anyComments = true;
+                    }
+
+                    writer.WriteStartElement("comment");
+                    if (!string.IsNullOrWhiteSpace(guid))
+                    {
+                        writer.WriteAttributeString("id", guid);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(status))
+                    {
+                        writer.WriteAttributeString("status", status);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(author))
+                    {
+                        writer.WriteElementString("user", author);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(body))
+                    {
+                        writer.WriteElementString("body", body);
+                    }
+
+                    WriteCreatedDate(writer, creationDate);
+                    writer.WriteEndElement();
+                }
+
+                if (anyComments)
+                {
+                    writer.WriteEndElement();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to reflect Navisworks comments: {ex.Message}");
+            }
+        }
+
+        private static void WriteCreatedDate(XmlWriter writer, object? created)
+        {
+            if (created is not DateTime createdDate)
+            {
+                return;
+            }
+
+            if (createdDate.Year < 1900)
             {
                 return;
             }
 
             writer.WriteStartElement("createddate");
             writer.WriteStartElement("date");
-            writer.WriteAttributeString("year", created.Year.ToString(CultureInfo.InvariantCulture));
-            writer.WriteAttributeString("month", created.Month.ToString(CultureInfo.InvariantCulture));
-            writer.WriteAttributeString("day", created.Day.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("year", createdDate.Year.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("month", createdDate.Month.ToString(CultureInfo.InvariantCulture));
+            writer.WriteAttributeString("day", createdDate.Day.ToString(CultureInfo.InvariantCulture));
             writer.WriteEndElement();
             writer.WriteEndElement();
         }
