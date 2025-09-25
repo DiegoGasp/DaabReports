@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -29,6 +30,10 @@ namespace DaabNavisExport
 
         public override int Execute(params string[] parameters)
         {
+            ExportContext? exportContext = null;
+            ProgressReporter? progress = null;
+            var completedSteps = 0;
+
             try
             {
                 if (NavisApplication.ActiveDocument == null)
@@ -40,18 +45,40 @@ namespace DaabNavisExport
 
                 var document = NavisApplication.ActiveDocument;
                 var outputDirectory = ResolveOutputDirectory(parameters);
-                var exportContext = BuildExportContext(document, outputDirectory);
+                exportContext = BuildExportContext(document, outputDirectory);
+
+                exportContext.Log.Info($"Using output directory: {outputDirectory}");
+                exportContext.Log.Info($"Document filename: {document.FileName ?? "<unsaved>"}");
+
+                progress = new ProgressReporter(4);
+                progress.Report(completedSteps, "Writing viewpoints to XML...");
 
                 ExportViewpointsToXml(document, exportContext);
+                completedSteps++;
+                exportContext.Log.Info($"Captured {exportContext.ViewSequence.Count} viewpoints.");
+
+                var totalSteps = Math.Max(exportContext.ViewSequence.Count + 4, 4);
+                progress.UpdateMaximum(totalSteps);
+                progress.Report(completedSteps, "Parsing exported XML...");
 
                 var parser = new NavisworksXmlParser();
                 var parseResult = parser.Process(exportContext.XmlPath);
-                parser.WriteOutputs(parseResult, exportContext.DbDirectory);
+                exportContext.Log.Info($"Parsed {parseResult.Rows.Count} CSV rows.");
 
-                ExportViewpointImages(exportContext, parseResult.Rows);
+                completedSteps++;
+                progress.Report(completedSteps, "Writing DB outputs...");
+                parser.WriteOutputs(parseResult, exportContext.DbDirectory);
+                exportContext.Log.Info("Database outputs written successfully.");
+
+                completedSteps++;
+                progress.Report(completedSteps, "Rendering viewpoint images...");
+                completedSteps = ExportViewpointImages(exportContext, parseResult.Rows, progress, completedSteps);
+
+                progress.Report(totalSteps, "Export complete.");
+                exportContext.Log.Info("Export finished successfully.");
 
                 MessageBox.Show(
-                    $"Export complete.\nProject folder: {exportContext.ProjectDirectory}\nXML: {exportContext.XmlPath}\nCSV: {Path.Combine(exportContext.DbDirectory, NavisworksXmlParser.CsvFileName)}",
+                    $"Export complete.\nProject folder: {exportContext.ProjectDirectory}\nXML: {exportContext.XmlPath}\nCSV: {Path.Combine(exportContext.DbDirectory, NavisworksXmlParser.CsvFileName)}\nLog: {exportContext.Log.FilePath}",
                     "Daab Navis Export",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
@@ -60,9 +87,15 @@ namespace DaabNavisExport
             }
             catch (Exception ex)
             {
+                exportContext?.Log.Error($"Export failed: {ex}");
                 MessageBox.Show($"Export failed: {ex.Message}", "Daab Navis Export",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return -1;
+            }
+            finally
+            {
+                progress?.Dispose();
+                exportContext?.Log.Complete();
             }
         }
 
@@ -80,8 +113,15 @@ namespace DaabNavisExport
             Directory.CreateDirectory(imagesDirectory);
 
             var xmlFile = Path.Combine(dbDirectory, "DB.xml");
+            var logFile = Path.Combine(projectDirectory, $"export_{DateTime.Now:yyyyMMdd_HHmmss}.log");
+            var log = new ExportLog(logFile);
 
-            return new ExportContext(document, outputDirectory, projectDirectory, dbDirectory, imagesDirectory, xmlFile);
+            log.Info($"Project directory: {projectDirectory}");
+            log.Info($"DB directory: {dbDirectory}");
+            log.Info($"Images directory: {imagesDirectory}");
+            log.Info($"XML output: {xmlFile}");
+
+            return new ExportContext(document, outputDirectory, projectDirectory, dbDirectory, imagesDirectory, xmlFile, log);
         }
 
         private static string ResolveProjectFolderName(Document document)
@@ -105,7 +145,7 @@ namespace DaabNavisExport
             var explicitPath = parameters?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
             if (!string.IsNullOrEmpty(explicitPath))
             {
-                return explicitPath;
+                return explicitPath!;
             }
 
             var navisTemp = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -283,90 +323,519 @@ namespace DaabNavisExport
             writer.WriteEndElement();
         }
 
-        private static void ExportViewpointImages(ExportContext context, IEnumerable<IReadOnlyList<string?>> rows)
+        private static int ExportViewpointImages(
+            ExportContext context,
+            IEnumerable<IReadOnlyList<string?>> rows,
+            ProgressReporter progress,
+            int completedSteps)
         {
             if (context.ViewSequence.Count == 0)
             {
-                return;
+                context.Log.Warn("No viewpoints discovered while attempting to export images.");
+                return completedSteps;
             }
 
             Directory.CreateDirectory(context.ImagesDirectory);
 
+            var log = context.Log;
             var imageAssignments = new Dictionary<Guid, string>();
+            var guidIndex = -1;
+            var imageIndex = -1;
+            var headerProcessed = false;
+
             foreach (var row in rows)
             {
-                if (row.Count <= 10)
+                if (!headerProcessed)
+                {
+                    for (var i = 0; i < row.Count; i++)
+                    {
+                        var header = row[i];
+                        if (string.Equals(header, "GUID", StringComparison.OrdinalIgnoreCase))
+                        {
+                            guidIndex = i;
+                        }
+                        else if (string.Equals(header, "Image", StringComparison.OrdinalIgnoreCase))
+                        {
+                            imageIndex = i;
+                        }
+                    }
+
+                    headerProcessed = true;
+                    continue;
+                }
+
+                if (guidIndex == -1 || imageIndex == -1)
                 {
                     continue;
                 }
 
-                var guidText = row[4];
-                var imagePath = row[10];
-                if (string.IsNullOrWhiteSpace(guidText) || string.IsNullOrWhiteSpace(imagePath))
-                {
-                    continue;
-                }
+                var guidValue = row.Count > guidIndex ? row[guidIndex] : null;
+                var imageValue = row.Count > imageIndex ? row[imageIndex] : null;
 
-                if (!Guid.TryParse(guidText, out var guid))
+                if (Guid.TryParse(guidValue, out var guid) && !string.IsNullOrEmpty(imageValue))
                 {
-                    continue;
-                }
+                    var normalizedPath = imageValue.Replace('/', Path.DirectorySeparatorChar);
+                    log.Info($"Row mapped viewpoint {guid} to image '{normalizedPath}'.");
 
-                if (!imageAssignments.ContainsKey(guid))
-                {
-                    imageAssignments.Add(guid, imagePath);
+                    if (!imageAssignments.ContainsKey(guid))
+                    {
+                        imageAssignments.Add(guid, normalizedPath);
+                    }
+                    else
+                    {
+                        log.Warn($"Duplicate image mapping for viewpoint {guid} ignored (existing: '{imageAssignments[guid]}', incoming: '{normalizedPath}').");
+                    }
                 }
             }
 
+            var totalViewpoints = context.ViewSequence.Count;
+            log.Info($"Preparing to render {totalViewpoints} viewpoints.");
+
+            var index = 0;
             foreach (var viewpoint in context.ViewSequence)
             {
                 if (!imageAssignments.TryGetValue(viewpoint.Guid, out var imageFile))
                 {
+                    log.Warn($"No image assignment found for viewpoint {viewpoint.Guid}; skipping.");
                     continue;
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
-
-                using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
-                if (bitmap == null)
+                var targetDirectory = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(targetDirectory))
                 {
-                    continue;
+                    Directory.CreateDirectory(targetDirectory);
                 }
 
-                bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                var displayName = viewpoint.DisplayName ?? viewpoint.Guid.ToString();
+                var progressMessage = $"Rendering {displayName} ({index + 1}/{totalViewpoints})";
+                progress.Report(completedSteps, progressMessage + "...");
+                log.Info($"Rendering viewpoint '{displayName}' to '{targetPath}'.");
+
+                var rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450), log);
+                if (!rendered)
+                {
+                    rendered = TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450), log);
+                    if (rendered && !File.Exists(targetPath))
+                    {
+                        log.Warn($"Thumbnail generation reported success but file not found at {targetPath}.");
+                        rendered = false;
+                    }
+                }
+
+                completedSteps++;
+                index++;
+
+                if (!rendered)
+                {
+                    var failureMessage = $"No renderer succeeded for viewpoint {displayName} (GUID={viewpoint.Guid}).";
+                    log.Warn(failureMessage);
+                    progress.Report(completedSteps, failureMessage);
+                }
+                else
+                {
+                    var successMessage = $"Saved viewpoint '{displayName}' to '{targetPath}'.";
+                    log.Info(successMessage);
+                    progress.Report(completedSteps, successMessage);
+                }
             }
+
+            return completedSteps;
         }
 
-        private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
+        private static bool TryRenderViewpointImage(Document document, SavedViewpoint viewpoint, string targetPath, Size size, ExportLog log)
+        {
+            try
+            {
+                if (!TryApplyViewpoint(document, viewpoint, log))
+                {
+                    log.Warn($"Viewpoint {viewpoint.Guid} could not be fully applied; attempting render with current view state.");
+                }
+
+                var activeViewProperty = document.GetType().GetProperty("ActiveView");
+                var activeView = activeViewProperty?.GetValue(document);
+                if (activeView == null)
+                {
+                    log.Warn("ActiveView property not available on document.");
+                    return false;
+                }
+
+                var viewType = activeView.GetType();
+
+                log.Info("Attempting RenderToImage(string, int, int) via reflection.");
+                if (TryInvokeViewToFile(activeView, viewType, "RenderToImage", targetPath, size, log))
+                {
+                    log.Info("RenderToImage(string, int, int) succeeded.");
+                    return true;
+                }
+
+                log.Info("Attempting SaveToImage(string, int, int) via reflection.");
+                if (TryInvokeViewToFile(activeView, viewType, "SaveToImage", targetPath, size, log))
+                {
+                    log.Info("SaveToImage(string, int, int) succeeded.");
+                    return true;
+                }
+
+                log.Info("Attempting RenderToImage overloads with style parameter.");
+                if (TryInvokeViewWithStyle(activeView, viewType, "RenderToImage", targetPath, size, log))
+                {
+                    log.Info("RenderToImage(style, string, int, int) succeeded.");
+                    return true;
+                }
+
+                log.Info("Attempting SaveToImage overloads with style parameter.");
+                if (TryInvokeViewWithStyle(activeView, viewType, "SaveToImage", targetPath, size, log))
+                {
+                    log.Info("SaveToImage(style, string, int, int) succeeded.");
+                    return true;
+                }
+
+                log.Info("Attempting GenerateImage methods.");
+                if (TryGenerateImage(activeView, viewType, targetPath, size, log))
+                {
+                    log.Info("GenerateImage methods produced an image.");
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Failed to render viewpoint image for {viewpoint.DisplayName}: {ex}");
+            }
+
+            return false;
+        }
+
+        private static bool TryApplyViewpoint(Document document, SavedViewpoint viewpoint, ExportLog log)
+        {
+            try
+            {
+                var applied = false;
+                var savedViewpoints = document.SavedViewpoints;
+                if (savedViewpoints != null)
+                {
+                    var currentProp = savedViewpoints.GetType().GetProperty("CurrentSavedViewpoint");
+                    if (currentProp != null && currentProp.CanWrite)
+                    {
+                        currentProp.SetValue(savedViewpoints, viewpoint);
+                        applied = true;
+                        log.Info($"Set CurrentSavedViewpoint to {viewpoint.DisplayName ?? viewpoint.Guid.ToString()}.");
+                    }
+                }
+
+                var applyMethod = viewpoint.GetType().GetMethod("ApplyToDocument", new[] { typeof(Document) });
+                if (applyMethod != null)
+                {
+                    applyMethod.Invoke(viewpoint, new object[] { document });
+                    applied = true;
+                    log.Info("Invoked ApplyToDocument on SavedViewpoint.");
+                }
+
+                var viewpointProperty = viewpoint.GetType().GetProperty("Viewpoint");
+                var navisViewpoint = viewpointProperty?.GetValue(viewpoint);
+                if (navisViewpoint != null)
+                {
+                    var documentType = document.GetType();
+                    var currentViewpointProperty = documentType.GetProperty("CurrentViewpoint");
+                    if (currentViewpointProperty != null && currentViewpointProperty.CanWrite)
+                    {
+                        currentViewpointProperty.SetValue(document, navisViewpoint);
+                        applied = true;
+                        log.Info("Updated Document.CurrentViewpoint via reflection.");
+                    }
+                }
+
+                return applied;
+            }
+            catch (Exception ex)
+            {
+                log.Error($"Failed to apply viewpoint {viewpoint.DisplayName}: {ex}");
+            }
+
+            return false;
+        }
+
+        private static bool TryGenerateThumbnail(SavedViewpoint viewpoint, string targetPath, Size size, ExportLog log)
         {
             try
             {
                 var type = viewpoint.GetType();
 
                 var sizeMethod = type.GetMethod("GenerateThumbnail", new[] { typeof(Size) });
-                if (sizeMethod?.Invoke(viewpoint, new object[] { size }) is Bitmap generated)
+                if (sizeMethod != null)
                 {
-                    return generated;
+                    var result = sizeMethod.Invoke(viewpoint, new object[] { size });
+                    log.Info("Invoked GenerateThumbnail(Size).");
+                    if (TrySaveImageToPath(result, targetPath, log))
+                    {
+                        return true;
+                    }
                 }
 
                 var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
-                if (noArgMethod?.Invoke(viewpoint, Array.Empty<object>()) is Bitmap generatedNoArg)
+                if (noArgMethod != null)
                 {
-                    return generatedNoArg;
+                    var result = noArgMethod.Invoke(viewpoint, Array.Empty<object>());
+                    log.Info("Invoked GenerateThumbnail().");
+                    if (TrySaveImageToPath(result, targetPath, log))
+                    {
+                        return true;
+                    }
                 }
 
                 var property = type.GetProperty("Thumbnail");
-                if (property?.GetValue(viewpoint) is Bitmap thumbnail)
+                if (property != null)
                 {
-                    return thumbnail;
+                    var value = property.GetValue(viewpoint);
+                    log.Info("Attempting to save Thumbnail property value.");
+                    if (TrySaveImageToPath(value, targetPath, log))
+                    {
+                        return true;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
+                log.Error($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex}");
             }
 
-            return null;
+            return false;
         }
-    }
+
+        private static bool TryInvokeViewToFile(object activeView, Type viewType, string methodName, string targetPath, Size size, ExportLog log)
+        {
+            var method = viewType.GetMethod(methodName, new[] { typeof(string), typeof(int), typeof(int) });
+            if (method == null)
+            {
+                log.Info($"Method {methodName}(string, int, int) not found on {viewType.FullName}.");
+                return false;
+            }
+
+            method.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
+            var created = File.Exists(targetPath);
+            if (!created)
+            {
+                log.Warn($"{methodName}(string, int, int) did not create a file at {targetPath}.");
+            }
+
+            return created;
+        }
+
+        private static bool TryInvokeViewWithStyle(object activeView, Type viewType, string methodName, string targetPath, Size size, ExportLog log)
+        {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == methodName))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 4)
+                {
+                    continue;
+                }
+
+                if (parameters[0].ParameterType != typeof(string) ||
+                    parameters[2].ParameterType != typeof(int) ||
+                    parameters[3].ParameterType != typeof(int))
+                {
+                    continue;
+                }
+
+                var styleValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                if (styleValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        styleValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                log.Info($"Invoking {method.Name}(string, {parameters[1].ParameterType.Name}, int, int) with style {styleValue}.");
+                method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size, ExportLog log)
+        {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == "GenerateImage"))
+            {
+                var parameters = method.GetParameters();
+                object? result = null;
+
+                if (parameters.Length == 2 &&
+                    parameters[0].ParameterType == typeof(int) &&
+                    parameters[1].ParameterType == typeof(int))
+                {
+                    log.Info("Invoking GenerateImage(int width, int height).");
+                    result = method.Invoke(activeView, new object[] { size.Width, size.Height });
+                }
+                else if (parameters.Length == 3 &&
+                         parameters[1].ParameterType == typeof(int) &&
+                         parameters[2].ParameterType == typeof(int))
+                {
+                    var styleValue = ResolveEnumValue(parameters[0].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                    if (styleValue == null)
+                    {
+                        if (parameters[0].ParameterType.IsValueType)
+                        {
+                            styleValue = Activator.CreateInstance(parameters[0].ParameterType);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    log.Info($"Invoking GenerateImage({parameters[0].ParameterType.Name} style, int width, int height) with style {styleValue}.");
+                    result = method.Invoke(activeView, new[] { styleValue, size.Width, size.Height });
+                }
+
+                if (TrySaveImageToPath(result, targetPath, log))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TrySaveImageToPath(object? imageObject, string targetPath, ExportLog log)
+        {
+            if (imageObject == null)
+            {
+                log.Warn("Image object was null; nothing to save.");
+                return false;
+            }
+
+            if (imageObject is Bitmap bitmap)
+            {
+                using (bitmap)
+                {
+                    bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                }
+
+                log.Info($"Saved System.Drawing.Bitmap to {targetPath}.");
+                return File.Exists(targetPath);
+            }
+
+            var disposable = imageObject as IDisposable;
+            try
+            {
+                if (TrySaveViaReflection(imageObject, targetPath, log))
+                {
+                    return true;
+                }
+
+                var toBitmapMethod = imageObject.GetType().GetMethod("ToBitmap", Type.EmptyTypes);
+                if (toBitmapMethod?.Invoke(imageObject, Array.Empty<object>()) is Bitmap converted)
+                {
+                    using (converted)
+                    {
+                        converted.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    }
+
+                    log.Info($"Converted {imageObject.GetType().FullName} to Bitmap and saved to {targetPath}.");
+                    return File.Exists(targetPath);
+                }
+            }
+            finally
+            {
+                disposable?.Dispose();
+            }
+
+            return false;
+        }
+
+        private static bool TrySaveViaReflection(object imageObject, string targetPath, ExportLog log)
+        {
+            var type = imageObject.GetType();
+
+            var saveString = type.GetMethod("Save", new[] { typeof(string) });
+            if (saveString != null)
+            {
+                saveString.Invoke(imageObject, new object[] { targetPath });
+                if (File.Exists(targetPath))
+                {
+                    log.Info($"Saved {type.FullName} via Save(string) to {targetPath}.");
+                    return true;
+                }
+                log.Warn($"Save(string) on {type.FullName} did not create {targetPath}.");
+            }
+
+            foreach (var method in type.GetMethods().Where(m => m.Name == "Save"))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string))
+                {
+                    continue;
+                }
+
+                var formatValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Jpeg", "JPEG", "Jpg" });
+                if (formatValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        formatValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                method.Invoke(imageObject, new[] { targetPath, formatValue });
+                if (File.Exists(targetPath))
+                {
+                    log.Info($"Saved {type.FullName} via Save(string, {parameters[1].ParameterType.Name}) to {targetPath}.");
+                    return true;
+                }
+                log.Warn($"Save(string, {parameters[1].ParameterType.Name}) on {type.FullName} did not create {targetPath}.");
+            }
+
+            var writeToFile = type.GetMethod("WriteToFile", new[] { typeof(string) });
+            if (writeToFile != null)
+            {
+                writeToFile.Invoke(imageObject, new object[] { targetPath });
+                var created = File.Exists(targetPath);
+                if (created)
+                {
+                    log.Info($"Saved {type.FullName} via WriteToFile(string) to {targetPath}.");
+                }
+                else
+                {
+                    log.Warn($"WriteToFile(string) on {type.FullName} did not create {targetPath}.");
+                }
+
+                return created;
+            }
+
+            return false;
+        }
+
+        private static object? ResolveEnumValue(Type enumType, IReadOnlyList<string> preferredNames)
+        {
+            if (!enumType.IsEnum)
+            {
+                return null;
+            }
+
+            var names = Enum.GetNames(enumType);
+            foreach (var preferred in preferredNames)
+            {
+                var match = names.FirstOrDefault(n => string.Equals(n, preferred, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    return Enum.Parse(enumType, match);
+                }
+            }
+
+            return names.Length > 0 ? Enum.Parse(enumType, names[0]) : null;
+        }
+        }
 }

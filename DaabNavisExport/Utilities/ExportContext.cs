@@ -11,7 +11,8 @@ namespace DaabNavisExport.Utilities
             string projectDirectory,
             string dbDirectory,
             string imagesDirectory,
-            string xmlPath)
+            string xmlPath,
+            ExportLog log)
         {
             Document = document;
             RootDirectory = rootDirectory;
@@ -20,6 +21,7 @@ namespace DaabNavisExport.Utilities
             ImagesDirectory = imagesDirectory;
             XmlPath = xmlPath;
             ViewSequence = new List<SavedViewpoint>();
+            Log = log;
         }
 
         public Document Document { get; }
@@ -35,5 +37,7 @@ namespace DaabNavisExport.Utilities
         public string XmlPath { get; }
 
         public List<SavedViewpoint> ViewSequence { get; }
+
+        public ExportLog Log { get; }
     }
 }
