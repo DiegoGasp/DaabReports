@@ -22,7 +22,7 @@ namespace DaabNavisExport
         "DAAB",
         DisplayName = "DaabReport",
         ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format")]
-    [AddInPlugin(AddInLocation.AddIn, OverrideDisplayName = "DaabReport")]
+    [AddInPlugin(AddInLocation.AddIn)]
     public class ExportPlugin : AddInPlugin
     {
         private const string DbFolderName = "DB";
