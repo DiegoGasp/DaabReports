@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
 using System.IO;
@@ -312,9 +313,15 @@ namespace DaabNavisExport
                     continue;
                 }
 
+                var normalizedPath = imagePath!.Trim();
+                if (normalizedPath.Length == 0)
+                {
+                    continue;
+                }
+
                 if (!imageAssignments.ContainsKey(guid))
                 {
-                    imageAssignments.Add(guid, imagePath);
+                    imageAssignments.Add(guid, normalizedPath);
                 }
             }
 
@@ -326,47 +333,377 @@ namespace DaabNavisExport
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
+                var targetDirectory = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
 
-                using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
-                if (bitmap == null)
+                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
                 {
                     continue;
                 }
 
-                bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                if (TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450)))
+                {
+                    if (!File.Exists(targetPath))
+                    {
+                        Debug.WriteLine($"Thumbnail generation reported success but file not found at {targetPath}.");
+                    }
+
+                    continue;
+                }
+
+                Debug.WriteLine($"No renderer succeeded for viewpoint {viewpoint.DisplayName} (GUID={viewpoint.Guid}).");
             }
         }
 
-        private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
+        private static bool TryRenderViewpointImage(Document document, SavedViewpoint viewpoint, string targetPath, Size size)
+        {
+            try
+            {
+                TryApplyViewpoint(document, viewpoint);
+
+                var activeViewProperty = document.GetType().GetProperty("ActiveView");
+                var activeView = activeViewProperty?.GetValue(document);
+                if (activeView == null)
+                {
+                    return false;
+                }
+
+                var viewType = activeView.GetType();
+
+                if (TryInvokeViewToFile(activeView, viewType, "RenderToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryInvokeViewToFile(activeView, viewType, "SaveToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryInvokeViewWithStyle(activeView, viewType, "RenderToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryInvokeViewWithStyle(activeView, viewType, "SaveToImage", targetPath, size))
+                {
+                    return true;
+                }
+
+                if (TryGenerateImage(activeView, viewType, targetPath, size))
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to render viewpoint image for {viewpoint.DisplayName}: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        private static bool TryApplyViewpoint(Document document, SavedViewpoint viewpoint)
+        {
+            try
+            {
+                var applied = false;
+                var savedViewpoints = document.SavedViewpoints;
+                if (savedViewpoints != null)
+                {
+                    var currentProp = savedViewpoints.GetType().GetProperty("CurrentSavedViewpoint");
+                    if (currentProp != null && currentProp.CanWrite)
+                    {
+                        currentProp.SetValue(savedViewpoints, viewpoint);
+                        applied = true;
+                    }
+                }
+
+                var applyMethod = viewpoint.GetType().GetMethod("ApplyToDocument", new[] { typeof(Document) });
+                if (applyMethod != null)
+                {
+                    applyMethod.Invoke(viewpoint, new object[] { document });
+                    applied = true;
+                }
+
+                var viewpointProperty = viewpoint.GetType().GetProperty("Viewpoint");
+                var navisViewpoint = viewpointProperty?.GetValue(viewpoint);
+                if (navisViewpoint != null)
+                {
+                    var documentType = document.GetType();
+                    var currentViewpointProperty = documentType.GetProperty("CurrentViewpoint");
+                    if (currentViewpointProperty != null && currentViewpointProperty.CanWrite)
+                    {
+                        currentViewpointProperty.SetValue(document, navisViewpoint);
+                        applied = true;
+                    }
+                }
+
+                return applied;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to apply viewpoint {viewpoint.DisplayName}: {ex.Message}");
+            }
+
+            return false;
+        }
+
+        private static bool TryGenerateThumbnail(SavedViewpoint viewpoint, string targetPath, Size size)
         {
             try
             {
                 var type = viewpoint.GetType();
 
                 var sizeMethod = type.GetMethod("GenerateThumbnail", new[] { typeof(Size) });
-                if (sizeMethod?.Invoke(viewpoint, new object[] { size }) is Bitmap generated)
+                if (sizeMethod != null)
                 {
-                    return generated;
+                    var result = sizeMethod.Invoke(viewpoint, new object[] { size });
+                    if (TrySaveImageToPath(result, targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
-                if (noArgMethod?.Invoke(viewpoint, Array.Empty<object>()) is Bitmap generatedNoArg)
+                if (noArgMethod != null)
                 {
-                    return generatedNoArg;
+                    var result = noArgMethod.Invoke(viewpoint, Array.Empty<object>());
+                    if (TrySaveImageToPath(result, targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var property = type.GetProperty("Thumbnail");
-                if (property?.GetValue(viewpoint) is Bitmap thumbnail)
+                if (property != null)
                 {
-                    return thumbnail;
+                    var value = property.GetValue(viewpoint);
+                    if (TrySaveImageToPath(value, targetPath))
+                    {
+                        return true;
+                    }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
+                Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
             }
 
-            return null;
+            return false;
         }
-    }
+
+        private static bool TryInvokeViewToFile(object activeView, Type viewType, string methodName, string targetPath, Size size)
+        {
+            var method = viewType.GetMethod(methodName, new[] { typeof(string), typeof(int), typeof(int) });
+            if (method == null)
+            {
+                return false;
+            }
+
+            method.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
+            return File.Exists(targetPath);
+        }
+
+        private static bool TryInvokeViewWithStyle(object activeView, Type viewType, string methodName, string targetPath, Size size)
+        {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == methodName))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 4)
+                {
+                    continue;
+                }
+
+                if (parameters[0].ParameterType != typeof(string) ||
+                    parameters[2].ParameterType != typeof(int) ||
+                    parameters[3].ParameterType != typeof(int))
+                {
+                    continue;
+                }
+
+                var styleValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                if (styleValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        styleValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size)
+        {
+            foreach (var method in viewType.GetMethods().Where(m => m.Name == "GenerateImage"))
+            {
+                var parameters = method.GetParameters();
+                object? result = null;
+
+                if (parameters.Length == 2 &&
+                    parameters[0].ParameterType == typeof(int) &&
+                    parameters[1].ParameterType == typeof(int))
+                {
+                    result = method.Invoke(activeView, new object[] { size.Width, size.Height });
+                }
+                else if (parameters.Length == 3 &&
+                         parameters[1].ParameterType == typeof(int) &&
+                         parameters[2].ParameterType == typeof(int))
+                {
+                    var styleValue = ResolveEnumValue(parameters[0].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
+                    if (styleValue == null)
+                    {
+                        if (parameters[0].ParameterType.IsValueType)
+                        {
+                            styleValue = Activator.CreateInstance(parameters[0].ParameterType);
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    result = method.Invoke(activeView, new[] { styleValue, size.Width, size.Height });
+                }
+
+                if (TrySaveImageToPath(result, targetPath))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TrySaveImageToPath(object? imageObject, string targetPath)
+        {
+            if (imageObject == null)
+            {
+                return false;
+            }
+
+            if (imageObject is Bitmap bitmap)
+            {
+                using (bitmap)
+                {
+                    bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                }
+
+                return File.Exists(targetPath);
+            }
+
+            var disposable = imageObject as IDisposable;
+            try
+            {
+                if (TrySaveViaReflection(imageObject, targetPath))
+                {
+                    return true;
+                }
+
+                var toBitmapMethod = imageObject.GetType().GetMethod("ToBitmap", Type.EmptyTypes);
+                if (toBitmapMethod?.Invoke(imageObject, Array.Empty<object>()) is Bitmap converted)
+                {
+                    using (converted)
+                    {
+                        converted.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    }
+
+                    return File.Exists(targetPath);
+                }
+            }
+            finally
+            {
+                disposable?.Dispose();
+            }
+
+            return false;
+        }
+
+        private static bool TrySaveViaReflection(object imageObject, string targetPath)
+        {
+            var type = imageObject.GetType();
+
+            var saveString = type.GetMethod("Save", new[] { typeof(string) });
+            if (saveString != null)
+            {
+                saveString.Invoke(imageObject, new object[] { targetPath });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            foreach (var method in type.GetMethods().Where(m => m.Name == "Save"))
+            {
+                var parameters = method.GetParameters();
+                if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string))
+                {
+                    continue;
+                }
+
+                var formatValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Jpeg", "JPEG", "Jpg" });
+                if (formatValue == null)
+                {
+                    if (parameters[1].ParameterType.IsValueType)
+                    {
+                        formatValue = Activator.CreateInstance(parameters[1].ParameterType);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
+                method.Invoke(imageObject, new[] { targetPath, formatValue });
+                if (File.Exists(targetPath))
+                {
+                    return true;
+                }
+            }
+
+            var writeToFile = type.GetMethod("WriteToFile", new[] { typeof(string) });
+            if (writeToFile != null)
+            {
+                writeToFile.Invoke(imageObject, new object[] { targetPath });
+                return File.Exists(targetPath);
+            }
+
+            return false;
+        }
+
+        private static object? ResolveEnumValue(Type enumType, IReadOnlyList<string> preferredNames)
+        {
+            if (!enumType.IsEnum)
+            {
+                return null;
+            }
+
+            var names = Enum.GetNames(enumType);
+            foreach (var preferred in preferredNames)
+            {
+                var match = names.FirstOrDefault(n => string.Equals(n, preferred, StringComparison.OrdinalIgnoreCase));
+                if (match != null)
+                {
+                    return Enum.Parse(enumType, match);
+                }
+            }
+
+            return names.Length > 0 ? Enum.Parse(enumType, names[0]) : null;
+        }
+        }
 }
