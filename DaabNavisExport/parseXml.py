@@ -11,6 +11,7 @@ CSV_FILE_NAME = "navisworks_views_comments.csv"
 IMAGE_FILE_PREFIX = "vp"
 
 
+
 def parse_createddate(created, log):
     """Convert <createddate><date .../> into yyyy/mm/dd"""
     try:

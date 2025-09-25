@@ -338,6 +338,11 @@ namespace DaabNavisExport
                     continue;
                 }
 
+                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
+                {
+                    continue;
+                }
+
                 using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
                 if (bitmap == null)
                 {
