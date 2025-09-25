@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ApplicationPackage SchemaVersion="1.0" AutodeskProduct="Navisworks" ProductType="Application" Name="Daab Navis Export" Description="Exports viewpoints, comments, and images to Daab Reports format." AppVersion="1.0" ProductCode="{E324E173-2803-489B-B727-34A96E616D67}" UpgradeCode="{31D68667-ED13-4805-B5D7-3E06D814AF03}">
-  <CompanyDetails Name="Daab Reports" Url="https://daabreports.com" />
+  <CompanyDetails Name="Daab Reports" Url="https://daabcontech.com" />
   <Components>
-    <RuntimeRequirements SeriesMin="2026" SeriesMax="2026" />
-    <ComponentEntry AppName="DaabNavisExport" ModuleName="DaabNavisExport.dll" AppType="Application" LoadOnStartUp="True" />
+	<RuntimeRequirements OS="Win64" Platform="NAVMAN" SeriesMin="Nw23" SeriesMax="Nw23" />
+	<ComponentEntry AppName="DaabReportExport" AppType="ManagedPlugin" Version="1.1.7" ModuleName="./Contents/2026/DaabNavisExport.dll" AppDescription="Export for reports" />
   </Components>
 </ApplicationPackage>

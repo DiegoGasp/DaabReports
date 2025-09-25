@@ -6,20 +6,44 @@
                 <Nullable>enable</Nullable>
                 <LangVersion>latest</LangVersion>
                 <RootNamespace>DaabNavisExport</RootNamespace>
-                <OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport\Contents\2026\</OutputPath>
+
+		<!-- Build outputs (dll+pdb) go directly into Contents\2026 -->
+		<OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\</OutputPath>
         </PropertyGroup>
-        <ItemGroup>
-                <Reference Include="Autodesk.Navisworks.Api">
-                        <HintPath>C:\Program Files\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Api.dll</HintPath>
-                        <Private>false</Private>
-                </Reference>
-                <Reference Include="System.Drawing" />
-                <Reference Include="System.Windows.Forms" />
-        </ItemGroup>
-        <ItemGroup>
-                <None Update="PackageContents.xml">
-                        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-                        <TargetPath>..\..\PackageContents.xml</TargetPath>
-                </None>
-        </ItemGroup>
+
+	<!-- Remove from default handling -->
+	<ItemGroup>
+		<None Remove="DaabNavisExport.addin" />
+		<None Remove="DaabRibbon.xaml" />
+		<None Remove="PackageContents.xml" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Copy .addin to bundle root -->
+		<Content Include="DaabNavisExport.addin">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>..\..\DaabNavisExport.addin</TargetPath>
+		</Content>
+
+		<!-- Copy PackageContents.xml to bundle root -->
+		<Content Include="PackageContents.xml">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>..\..\PackageContents.xml</TargetPath>
+		</Content>
+
+		<!-- Copy ribbon XAML into Contents\2026 (alongside DLL) -->
+		<Content Include="DaabRibbon.xaml">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>DaabRibbon.xaml</TargetPath>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="Autodesk.Navisworks.Api">
+			<HintPath>C:\Program Files\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Api.dll</HintPath>
+			<Private>false</Private>
+	  </Reference>
+		<Reference Include="System.Drawing" />
+		<Reference Include="System.Windows.Forms" />
+	</ItemGroup>
 </Project>

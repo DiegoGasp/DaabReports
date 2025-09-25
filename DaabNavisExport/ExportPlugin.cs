@@ -14,7 +14,6 @@ using DaabNavisExport.Parsing;
 using DaabNavisExport.Utilities;
 using NavisApplication = Autodesk.Navisworks.Api.Application;
 
-
 namespace DaabNavisExport
 {
     [Plugin(
@@ -22,7 +21,7 @@ namespace DaabNavisExport
         "DAAB",
         DisplayName = "DaabReport",
         ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format")]
-    [AddInPlugin(AddInLocation.AddIn, OverrideDisplayName = "DaabReport")]
+    [AddInPlugin(AddInLocation.AddIn)]
     public class ExportPlugin : AddInPlugin
     {
         private const string DbFolderName = "DB";
@@ -34,7 +33,8 @@ namespace DaabNavisExport
             {
                 if (NavisApplication.ActiveDocument == null)
                 {
-                    MessageBox.Show("No active document open.", "Daab Navis Export", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("No active document open.", "Daab Navis Export",
+                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return 0;
                 }
 
@@ -60,7 +60,8 @@ namespace DaabNavisExport
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Export failed: {ex.Message}", "Daab Navis Export", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show($"Export failed: {ex.Message}", "Daab Navis Export",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return -1;
             }
         }
@@ -335,6 +336,7 @@ namespace DaabNavisExport
                 bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
             }
         }
+
         private static Bitmap? TryGenerateThumbnail(SavedViewpoint viewpoint, Size size)
         {
             try
