@@ -8,6 +8,8 @@ from typing import List, Optional, Sequence, Tuple
 
 
 CSV_FILE_NAME = "navisworks_views_comments.csv"
+IMAGE_FILE_PREFIX = "vp"
+
 
 
 def parse_createddate(created, log):
@@ -52,7 +54,7 @@ def recurse(folder, path, rows, seen, view_counter, log):
         view_counter[0] += 1
         view_name = view.attrib.get("name", "")
         guid = view.attrib.get("guid", "")
-        image_file = f"{Path(CSV_FILE_NAME).stem}_{str(view_counter[0]).zfill(4)}.jpg"
+        image_file = f"{IMAGE_FILE_PREFIX}{str(view_counter[0]).zfill(4)}.jpg"
 
         log(f"  👀 Found view: {view_name} (GUID={guid}) → {image_file}")
 

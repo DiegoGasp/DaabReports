@@ -327,6 +327,16 @@ namespace DaabNavisExport
                 }
 
                 var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
+                var targetDirectory = Path.GetDirectoryName(targetPath);
+                if (!string.IsNullOrEmpty(targetDirectory))
+                {
+                    Directory.CreateDirectory(targetDirectory);
+                }
+
+                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
+                {
+                    continue;
+                }
 
                 if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
                 {
@@ -340,6 +350,10 @@ namespace DaabNavisExport
                 }
 
                 bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                if (!File.Exists(targetPath))
+                {
+                    Debug.WriteLine($"Thumbnail save reported success but file not found at {targetPath}.");
+                }
             }
         }
 
@@ -362,14 +376,20 @@ namespace DaabNavisExport
                 if (renderMethod != null)
                 {
                     renderMethod.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
-                    return true;
+                    if (File.Exists(targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var saveMethod = viewType.GetMethod("SaveToImage", new[] { typeof(string), typeof(int), typeof(int) });
                 if (saveMethod != null)
                 {
                     saveMethod.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
-                    return true;
+                    if (File.Exists(targetPath))
+                    {
+                        return true;
+                    }
                 }
 
                 var generateMethod = viewType.GetMethod("GenerateImage", new[] { typeof(int), typeof(int) });
@@ -380,7 +400,7 @@ namespace DaabNavisExport
                         generated.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
                     }
 
-                    return true;
+                    return File.Exists(targetPath);
                 }
             }
             catch (Exception ex)

@@ -12,6 +12,7 @@ namespace DaabNavisExport.Parsing
     {
         public const string CsvFileName = "navisworks_views_comments.csv";
         public const string DebugFileName = "debug.txt";
+        private const string ImageFilePrefix = "vp";
 
         public ParseResult Process(string xmlPath, bool streamDebug = false)
         {
@@ -41,7 +42,7 @@ namespace DaabNavisExport.Parsing
 
             foreach (var folder in viewFolders)
             {
-                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefix, Log);
+                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, ImageFilePrefix, Log);
             }
 
             return new ParseResult(rows, debug);
@@ -120,7 +121,7 @@ namespace DaabNavisExport.Parsing
                 viewCounter++;
                 var viewName = view.Attribute("name")?.Value ?? string.Empty;
                 var guid = view.Attribute("guid")?.Value ?? string.Empty;
-                var imageFile = $"{imagePrefix}_{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
+                var imageFile = $"{imagePrefix}{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
 
                 log($"  👀 Found view: {viewName} (GUID={guid}) → {imageFile}");
 
