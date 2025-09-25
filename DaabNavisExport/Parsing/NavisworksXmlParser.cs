@@ -25,6 +25,7 @@ namespace DaabNavisExport.Parsing
             var debug = new List<string>();
             var seen = new HashSet<(string? Guid, string? CommentId)>();
             var viewCounter = 0;
+            var imagePrefix = Path.GetFileNameWithoutExtension(CsvFileName);
 
             void Log(string message)
             {
