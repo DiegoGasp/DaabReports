@@ -24,6 +24,7 @@ namespace DaabNavisExport.Parsing
             var debug = new List<string>();
             var seen = new HashSet<(string? Guid, string? CommentId)>();
             var viewCounter = 0;
+            var imagePrefix = Path.GetFileNameWithoutExtension(CsvFileName);
 
             void Log(string message)
             {
@@ -40,7 +41,7 @@ namespace DaabNavisExport.Parsing
 
             foreach (var folder in viewFolders)
             {
-                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, Log);
+                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefix, Log);
             }
 
             return new ParseResult(rows, debug);
@@ -106,6 +107,7 @@ namespace DaabNavisExport.Parsing
             ICollection<List<string?>> rows,
             ISet<(string? Guid, string? CommentId)> seen,
             ref int viewCounter,
+            string imagePrefix,
             Action<string> log)
         {
             var folderName = folder.Attribute("name")?.Value ?? string.Empty;
@@ -118,7 +120,7 @@ namespace DaabNavisExport.Parsing
                 viewCounter++;
                 var viewName = view.Attribute("name")?.Value ?? string.Empty;
                 var guid = view.Attribute("guid")?.Value ?? string.Empty;
-                var imageFile = $"vp{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
+                var imageFile = $"{imagePrefix}_{viewCounter.ToString("0000", CultureInfo.InvariantCulture)}.jpg";
 
                 log($"  👀 Found view: {viewName} (GUID={guid}) → {imageFile}");
 
@@ -140,8 +142,8 @@ namespace DaabNavisExport.Parsing
 
             foreach (var child in folder.Elements("viewfolder"))
             {
-                RecurseFolder(child, newPath, rows, seen, ref viewCounter, log);
-            }
+                RecurseFolder(child, newPath, rows, seen, ref viewCounter, imagePrefix, log);
+        }
         }
 
         private static List<string?> BuildRow(

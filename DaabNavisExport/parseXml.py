@@ -7,6 +7,9 @@ from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
 
+CSV_FILE_NAME = "navisworks_views_comments.csv"
+
+
 def parse_createddate(created, log):
     """Convert <createddate><date .../> into yyyy/mm/dd"""
     try:
@@ -49,7 +52,7 @@ def recurse(folder, path, rows, seen, view_counter, log):
         view_counter[0] += 1
         view_name = view.attrib.get("name", "")
         guid = view.attrib.get("guid", "")
-        image_file = f"vp{str(view_counter[0]).zfill(4)}.jpg"
+        image_file = f"{Path(CSV_FILE_NAME).stem}_{str(view_counter[0]).zfill(4)}.jpg"
 
         log(f"  👀 Found view: {view_name} (GUID={guid}) → {image_file}")
 
@@ -158,7 +161,7 @@ def process_xml(xml_path: Path, stream_debug: bool = False) -> Tuple[List[List[O
 
 
 def write_outputs(rows: Sequence[Sequence[Optional[str]]], debug_lines: Sequence[str]) -> None:
-    with open("navisworks_views_comments.csv", "w", newline="", encoding="utf-8") as f:
+    with open(CSV_FILE_NAME, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow([
             "Category",
