@@ -341,7 +341,21 @@ namespace DaabNavisExport
 
                 if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
                 {
-                    continue;
+                    rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
+                }
+
+                if (!rendered)
+                {
+                    using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
+                    if (bitmap != null)
+                    {
+                        SaveBitmapToJpeg(bitmap, targetPath);
+                        rendered = File.Exists(targetPath);
+                        if (!rendered)
+                        {
+                            Debug.WriteLine($"Thumbnail save reported success but file not found at {targetPath}.");
+                        }
+                    }
                 }
 
                 if (TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450)))
