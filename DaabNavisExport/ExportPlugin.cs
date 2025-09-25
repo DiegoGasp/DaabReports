@@ -15,7 +15,11 @@ using DaabNavisExport.Utilities;
 
 namespace DaabNavisExport
 {
-    [Plugin("DaabNavisExport", "DAAB", DisplayName = "Daab Navis Export", ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format", LoadForCanExecute = true)]
+    [Plugin(
+        "DaabNavisExport",
+        "DAAB",
+        DisplayName = "Daab Navis Export",
+        ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format")]
     public class ExportPlugin : AddInPlugin
     {
         private const string DbFolderName = "DB";
@@ -325,3 +329,5 @@ namespace DaabNavisExport
         }
     }
 }
+
+
