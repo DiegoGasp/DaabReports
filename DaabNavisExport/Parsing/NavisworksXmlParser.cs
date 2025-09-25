@@ -40,11 +40,11 @@ namespace DaabNavisExport.Parsing
             var root = document.Root ?? throw new InvalidDataException("Invalid XML: missing root");
             var viewFolders = root.Element("viewpoints")?.Elements("viewfolder") ?? Enumerable.Empty<XElement>();
 
-            var imagePrefix = BuildImagePrefix();
+            var imagePrefixBase = BuildImagePrefix();
 
             foreach (var folder in viewFolders)
             {
-                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefix, Log);
+                RecurseFolder(folder, new List<string>(), rows, seen, ref viewCounter, imagePrefixBase, Log);
             }
 
             return new ParseResult(rows, debug);

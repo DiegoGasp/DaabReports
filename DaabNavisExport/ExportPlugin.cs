@@ -106,7 +106,7 @@ namespace DaabNavisExport
             var explicitPath = parameters?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
             if (!string.IsNullOrEmpty(explicitPath))
             {
-                return explicitPath;
+                return explicitPath!;
             }
 
             var navisTemp = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -339,36 +339,21 @@ namespace DaabNavisExport
                     Directory.CreateDirectory(targetDirectory);
                 }
 
-                if (TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450)))
+                var rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
+                if (!rendered)
                 {
-                    rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
+                    rendered = TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450));
+                    if (rendered && !File.Exists(targetPath))
+                    {
+                        Debug.WriteLine($"Thumbnail generation reported success but file not found at {targetPath}.");
+                        rendered = false;
+                    }
                 }
 
                 if (!rendered)
                 {
-                    using var bitmap = TryGenerateThumbnail(viewpoint, new Size(800, 450));
-                    if (bitmap != null)
-                    {
-                        SaveBitmapToJpeg(bitmap, targetPath);
-                        rendered = File.Exists(targetPath);
-                        if (!rendered)
-                        {
-                            Debug.WriteLine($"Thumbnail save reported success but file not found at {targetPath}.");
-                        }
-                    }
+                    Debug.WriteLine($"No renderer succeeded for viewpoint {viewpoint.DisplayName} (GUID={viewpoint.Guid}).");
                 }
-
-                if (TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450)))
-                {
-                    if (!File.Exists(targetPath))
-                    {
-                        Debug.WriteLine($"Thumbnail generation reported success but file not found at {targetPath}.");
-                    }
-
-                    continue;
-                }
-
-                Debug.WriteLine($"No renderer succeeded for viewpoint {viewpoint.DisplayName} (GUID={viewpoint.Guid}).");
             }
         }
 

@@ -16,8 +16,9 @@ namespace DaabNavisExport.Utilities
                 return "navisworks";
             }
 
-            var builder = new StringBuilder(value.Length);
-            foreach (var ch in value)
+            var text = value!;
+            var builder = new StringBuilder(text.Length);
+            foreach (var ch in text)
             {
                 builder.Append(InvalidFileNameChars.Contains(ch) ? '_' : ch);
             }
