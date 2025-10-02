@@ -1,0 +1,81 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Diego\\daabcontech.com\\MANAGEMENT - Documents\\Projects\\Git\\DaabReports\\DaabNavisExport\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\Diego\\AppData\\Local\\Temp\\VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt||{8B382828-6202-11D1-8870-0000F87579D2}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7164D7A7-A81A-6A4B-4A87-7E52856919AE}|DaabNavisExport.csproj|c:\\users\\diego\\daabcontech.com\\management - documents\\projects\\git\\daabreports\\daabnavisexport\\daabnavisexport.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{7164D7A7-A81A-6A4B-4A87-7E52856919AE}|DaabNavisExport.csproj|solutionrelative:daabnavisexport.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{7164D7A7-A81A-6A4B-4A87-7E52856919AE}|DaabNavisExport.csproj|c:\\users\\diego\\daabcontech.com\\management - documents\\projects\\git\\daabreports\\daabnavisexport\\exportplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{7164D7A7-A81A-6A4B-4A87-7E52856919AE}|DaabNavisExport.csproj|solutionrelative:exportplugin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt",
+              "DocumentMoniker": "C:\\Users\\Diego\\AppData\\Local\\Temp\\VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt",
+              "RelativeDocumentMoniker": "..\\..\\..\\..\\..\\..\\AppData\\Local\\Temp\\VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt",
+              "ToolTip": "C:\\Users\\Diego\\AppData\\Local\\Temp\\VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt",
+              "RelativeToolTip": "..\\..\\..\\..\\..\\..\\AppData\\Local\\Temp\\VSProjectConfigWarningLog_ece70417-5928-4931-9dae-d9731596213c.txt",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAAOAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003109|",
+              "WhenOpened": "2025-10-02T19:36:46.895Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "ExportPlugin.cs",
+              "DocumentMoniker": "C:\\Users\\Diego\\daabcontech.com\\MANAGEMENT - Documents\\Projects\\Git\\DaabReports\\DaabNavisExport\\ExportPlugin.cs",
+              "RelativeDocumentMoniker": "ExportPlugin.cs",
+              "ToolTip": "C:\\Users\\Diego\\daabcontech.com\\MANAGEMENT - Documents\\Projects\\Git\\DaabReports\\DaabNavisExport\\ExportPlugin.cs",
+              "RelativeToolTip": "ExportPlugin.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-02T19:11:39.878Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "DaabNavisExport.csproj",
+              "DocumentMoniker": "C:\\Users\\Diego\\daabcontech.com\\MANAGEMENT - Documents\\Projects\\Git\\DaabReports\\DaabNavisExport\\DaabNavisExport.csproj",
+              "RelativeDocumentMoniker": "DaabNavisExport.csproj",
+              "ToolTip": "C:\\Users\\Diego\\daabcontech.com\\MANAGEMENT - Documents\\Projects\\Git\\DaabReports\\DaabNavisExport\\DaabNavisExport.csproj",
+              "RelativeToolTip": "DaabNavisExport.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-10-02T19:10:32.088Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{269a02dc-6af8-11d3-bdc4-00c04f688e50}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{cce594b6-0c39-4442-ba28-10c64ac7e89f}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
