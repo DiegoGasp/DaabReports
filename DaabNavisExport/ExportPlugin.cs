@@ -1,75 +1,107 @@
+using Autodesk.Navisworks.Api;
+using Autodesk.Navisworks.Api.Data;
+using Autodesk.Navisworks.Api.Plugins;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
-using System.Xml;
-using Autodesk.Navisworks.Api;
-using Autodesk.Navisworks.Api.Plugins;
-using DaabNavisExport.Parsing;
-using DaabNavisExport.Utilities;
 using NavisApplication = Autodesk.Navisworks.Api.Application;
 
 namespace DaabNavisExport
 {
-    [Plugin(
-        "DaabNavisExport",
-        "DAAB",
-        DisplayName = "DaabReport",
-        ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format")]
-    [AddInPlugin(AddInLocation.AddIn)]
-    public class ExportPlugin : AddInPlugin
+    // Ribbon layout
+    [Plugin("DaabRibbon", "DAAB")]
+    [RibbonLayout("DaabRibbon.xaml")]
+    [Command("RunExport", DisplayName = "Export Report", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Export viewpoints and comments to report")]
+    [Command("OpenSettings", DisplayName = "Settings", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Configure export settings")]
+    [Command("CreateViewpoint", DisplayName = "Create Viewpoint", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Create and organize viewpoint")]
+    public sealed class DaabRibbon : CommandHandlerPlugin
     {
-        private const string DbFolderName = "DB";
-        private const string ImagesFolderName = "Images";
+        public override int ExecuteCommand(string commandId, params string[] parameters)
+        {
+            switch (commandId)
+            {
+                case "RunExport":
+                    NavisApplication.Plugins.ExecuteAddInPlugin("DaabNavisExport.DAAB");
+                    break;
+                case "OpenSettings":
+                    ShowSettingsDialog();
+                    break;
+                case "CreateViewpoint":
+                    NavisApplication.Plugins.ExecuteAddInPlugin("DaabViewpointCreator.DAAB");
+                    break;
+            }
+            return 0;
+        }
 
-        public override int Execute(params string[] parameters)
+        private void ShowSettingsDialog()
         {
             try
             {
-                if (NavisApplication.ActiveDocument == null)
+                // Get Navisworks main window handle
+                var mainWindow = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+                if (mainWindow != IntPtr.Zero)
                 {
                     MessageBox.Show("No active document open.", "Daab Navis Export",
                         MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return 0;
                 }
-
-                var document = NavisApplication.ActiveDocument;
-                var outputDirectory = ResolveOutputDirectory(parameters);
-                var exportContext = BuildExportContext(document, outputDirectory);
-
-                ExportViewpointsToXml(document, exportContext);
-
-                var parser = new NavisworksXmlParser();
-                var parseResult = parser.Process(exportContext.XmlPath);
-                parser.WriteOutputs(parseResult, exportContext.DbDirectory);
-
-                ExportViewpointImages(exportContext, parseResult.Rows);
-
-                MessageBox.Show(
-                    $"Export complete.\nProject folder: {exportContext.ProjectDirectory}\nXML: {exportContext.XmlPath}\nCSV: {Path.Combine(exportContext.DbDirectory, NavisworksXmlParser.CsvFileName)}",
-                    "Daab Navis Export",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                return 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Export failed: {ex.Message}", "Daab Navis Export",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return -1;
+                else
+                {
+                    dialog.ShowDialog();
+                }
             }
         }
+    }
 
-        private static ExportContext BuildExportContext(Document document, string outputDirectory)
+    // Settings dialog
+    public class SettingsForm : Form
+    {
+        private NumericUpDown widthInput = null!;
+        private NumericUpDown heightInput = null!;
+        private CheckBox cloudinaryCheckbox = null!;
+        private ListBox subfolderListBox = null!;
+        private TextBox newSubfolderText = null!;
+        private Button addSubfolderButton = null!;
+        private Button removeSubfolderButton = null!;
+        private Button saveButton = null!;
+        private Button cancelButton = null!;
+
+        public SettingsForm()
         {
-            Directory.CreateDirectory(outputDirectory);
+            InitializeComponents();
+            LoadSettings();
+        }
+
+        private void InitializeComponents()
+        {
+            Text = "Daab Export Settings";
+            Width = 450;
+            Height = 450;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            StartPosition = FormStartPosition.CenterScreen;
+
+            var labelWidth = new Label { Text = "Image Width:", Left = 20, Top = 20, Width = 120 };
+            widthInput = new NumericUpDown { Left = 150, Top = 20, Width = 250, Minimum = 640, Maximum = 3840, Increment = 160 };
+
+            var labelHeight = new Label { Text = "Image Height:", Left = 20, Top = 60, Width = 120 };
+            heightInput = new NumericUpDown { Left = 150, Top = 60, Width = 250, Minimum = 480, Maximum = 2160, Increment = 120 };
+
+            cloudinaryCheckbox = new CheckBox { Text = "Enable Cloudinary Upload", Left = 20, Top = 100, Width = 300 };
+
+            var labelSubfolders = new Label { Text = "Subfolder Options:", Left = 20, Top = 140, Width = 380 };
+            subfolderListBox = new ListBox { Left = 20, Top = 165, Width = 380, Height = 120 };
 
             var projectFolderName = ResolveProjectFolderName(document);
             var projectDirectory = Path.Combine(outputDirectory, projectFolderName);
@@ -82,7 +114,17 @@ namespace DaabNavisExport
 
             var xmlFile = Path.Combine(dbDirectory, "DB.xml");
 
-            return new ExportContext(document, outputDirectory, projectDirectory, dbDirectory, imagesDirectory, xmlFile);
+            cancelButton = new Button { Text = "Cancel", Left = 320, Top = 350, Width = 80 };
+            cancelButton.Click += CancelButton_Click;
+
+            Controls.AddRange(new Control[] {
+                labelWidth, widthInput, labelHeight, heightInput, cloudinaryCheckbox,
+                labelSubfolders, subfolderListBox, newSubfolderText, addSubfolderButton,
+                removeSubfolderButton, saveButton, cancelButton
+            });
+
+            AcceptButton = saveButton;
+            CancelButton = cancelButton;
         }
 
         private static string ResolveProjectFolderName(Document document)
@@ -96,9 +138,6 @@ namespace DaabNavisExport
                 {
                     return sanitized;
                 }
-            }
-
-            return $"Navisworks_{DateTime.Now:yyyyMMdd_HHmmss}";
         }
 
         private static string ResolveOutputDirectory(IReadOnlyList<string> parameters)
@@ -109,8 +148,15 @@ namespace DaabNavisExport
                 return explicitPath!;
             }
 
-            var navisTemp = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            return Path.Combine(navisTemp, "DaabNavisExport");
+        private void LoadSettings()
+        {
+            widthInput.Value = ExportSettings.Instance.ImageWidth;
+            heightInput.Value = ExportSettings.Instance.ImageHeight;
+            cloudinaryCheckbox.Checked = ExportSettings.Instance.EnableCloudinary;
+
+            subfolderListBox.Items.Clear();
+            foreach (var option in ExportSettings.Instance.SubfolderOptions)
+                subfolderListBox.Items.Add(option);
         }
 
         private static void ExportViewpointsToXml(Document document, ExportContext context)
@@ -144,8 +190,8 @@ namespace DaabNavisExport
                 {
                     WriteSavedItem(writer, item, context);
                 }
+            catch { }
             }
-            writer.WriteEndElement(); // viewpoints
 
             writer.WriteEndElement(); // exchange
             writer.WriteEndDocument();
@@ -161,37 +207,28 @@ namespace DaabNavisExport
                 case SavedViewpoint viewpoint:
                     WriteView(writer, viewpoint, context);
                     break;
+                            case "EnableCloudinary":
+                                if (bool.TryParse(parts[1], out bool c)) settings.EnableCloudinary = c;
+                                break;
+                            case "SubfolderOptions":
+                                if (!string.IsNullOrWhiteSpace(parts[1]))
+                                    settings.SubfolderOptions = parts[1].Split('|').ToList();
+                                break;
             }
         }
-
-        private static void WriteFolder(XmlWriter writer, GroupItem folder, ExportContext context)
-        {
-            writer.WriteStartElement("viewfolder");
-            writer.WriteAttributeString("name", folder.DisplayName ?? string.Empty);
-            writer.WriteAttributeString("guid", folder.Guid.ToString());
-
-            foreach (SavedItem child in folder.Children)
-            {
-                WriteSavedItem(writer, child, context);
             }
-
-            writer.WriteEndElement();
         }
+            catch { }
+            return settings;
+        }
+    }
 
-        private static void WriteView(XmlWriter writer, SavedViewpoint viewpoint, ExportContext context)
+    // Viewpoint creator plugin
+    [Plugin("DaabViewpointCreator", "DAAB", DisplayName = "Create Viewpoint", ToolTip = "Create organized viewpoint")]
+    [AddInPlugin(AddInLocation.AddIn)]
+    public class ViewpointCreatorPlugin : AddInPlugin
         {
-            context.ViewSequence.Add(viewpoint);
-
-            writer.WriteStartElement("view");
-            writer.WriteAttributeString("name", viewpoint.DisplayName ?? string.Empty);
-            writer.WriteAttributeString("guid", viewpoint.Guid.ToString());
-
-            WriteComments(writer, viewpoint);
-
-            writer.WriteEndElement();
-        }
-
-        private static void WriteComments(XmlWriter writer, SavedViewpoint viewpoint)
+        public override int Execute(params string[] parameters)
         {
             try
             {
@@ -201,10 +238,6 @@ namespace DaabNavisExport
                     return;
                 }
 
-                if (commentsProperty.GetValue(viewpoint) is not IEnumerable comments)
-                {
-                    return;
-                }
 
                 var anyComments = false;
                 foreach (var comment in comments)
@@ -257,11 +290,6 @@ namespace DaabNavisExport
                     writer.WriteEndElement();
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to reflect Navisworks comments: {ex.Message}");
-            }
-        }
 
         private static void WriteCreatedDate(XmlWriter writer, object? created)
         {
@@ -273,7 +301,6 @@ namespace DaabNavisExport
             if (createdDate.Year < 1900)
             {
                 return;
-            }
 
             writer.WriteStartElement("createddate");
             writer.WriteStartElement("date");
@@ -331,12 +358,6 @@ namespace DaabNavisExport
                 {
                     continue;
                 }
-
-                var targetPath = Path.Combine(context.ImagesDirectory, imageFile);
-                var targetDirectory = Path.GetDirectoryName(targetPath);
-                if (!string.IsNullOrEmpty(targetDirectory))
-                {
-                    Directory.CreateDirectory(targetDirectory);
                 }
 
                 var rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
@@ -383,11 +404,6 @@ namespace DaabNavisExport
                 }
 
                 if (TryInvokeViewWithStyle(activeView, viewType, "RenderToImage", targetPath, size))
-                {
-                    return true;
-                }
-
-                if (TryInvokeViewWithStyle(activeView, viewType, "SaveToImage", targetPath, size))
                 {
                     return true;
                 }
@@ -439,16 +455,23 @@ namespace DaabNavisExport
                         currentViewpointProperty.SetValue(document, navisViewpoint);
                         applied = true;
                     }
-                }
 
-                return applied;
-            }
+                var safeProjectName = ToSafeFileName(_projectName);
+                var destFileName = $"{safeProjectName}_Report.pbix";
+                var dest = Path.Combine(exportContext.ProjectDirectory, destFileName);
+
+                Directory.CreateDirectory(exportContext.ProjectDirectory);
+                File.Copy(src, dest, overwrite: true);
+
+                if (File.Exists(dest))
+                    Log("Power BI template copied to: " + dest);
+                else
+                    Log("PBIX copy failed - file not found after copy.");
+                }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Failed to apply viewpoint {viewpoint.DisplayName}: {ex.Message}");
             }
-
-            return false;
         }
 
         private static bool TryGenerateThumbnail(SavedViewpoint viewpoint, string targetPath, Size size)
@@ -465,6 +488,7 @@ namespace DaabNavisExport
                     {
                         return true;
                     }
+            return "Navisworks_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
                 }
 
                 var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
@@ -475,7 +499,6 @@ namespace DaabNavisExport
                     {
                         return true;
                     }
-                }
 
                 var property = type.GetProperty("Thumbnail");
                 if (property != null)
@@ -531,11 +554,7 @@ namespace DaabNavisExport
                     {
                         styleValue = Activator.CreateInstance(parameters[1].ParameterType);
                     }
-                    else
-                    {
-                        continue;
                     }
-                }
 
                 method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
                 if (File.Exists(targetPath))
@@ -543,8 +562,6 @@ namespace DaabNavisExport
                     return true;
                 }
             }
-
-            return false;
         }
 
         private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size)
@@ -576,8 +593,6 @@ namespace DaabNavisExport
                             continue;
                         }
                     }
-
-                    result = method.Invoke(activeView, new[] { styleValue, size.Width, size.Height });
                 }
 
                 if (TrySaveImageToPath(result, targetPath))
@@ -589,24 +604,10 @@ namespace DaabNavisExport
             return false;
         }
 
-        private static bool TrySaveImageToPath(object? imageObject, string targetPath)
-        {
-            if (imageObject == null)
-            {
-                return false;
-            }
-
             if (imageObject is Bitmap bitmap)
             {
                 using (bitmap)
                 {
-                    bitmap.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                }
-
-                return File.Exists(targetPath);
-            }
-
-            var disposable = imageObject as IDisposable;
             try
             {
                 if (TrySaveViaReflection(imageObject, targetPath))
@@ -621,16 +622,12 @@ namespace DaabNavisExport
                     {
                         converted.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
                     }
-
-                    return File.Exists(targetPath);
                 }
             }
             finally
             {
                 disposable?.Dispose();
             }
-
-            return false;
         }
 
         private static bool TrySaveViaReflection(object imageObject, string targetPath)
@@ -646,13 +643,6 @@ namespace DaabNavisExport
                     return true;
                 }
             }
-
-            foreach (var method in type.GetMethods().Where(m => m.Name == "Save"))
-            {
-                var parameters = method.GetParameters();
-                if (parameters.Length != 2 || parameters[0].ParameterType != typeof(string))
-                {
-                    continue;
                 }
 
                 var formatValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Jpeg", "JPEG", "Jpg" });
@@ -668,12 +658,6 @@ namespace DaabNavisExport
                     }
                 }
 
-                method.Invoke(imageObject, new[] { targetPath, formatValue });
-                if (File.Exists(targetPath))
-                {
-                    return true;
-                }
-            }
 
             var writeToFile = type.GetMethod("WriteToFile", new[] { typeof(string) });
             if (writeToFile != null)
@@ -684,12 +668,6 @@ namespace DaabNavisExport
 
             return false;
         }
-
-        private static object? ResolveEnumValue(Type enumType, IReadOnlyList<string> preferredNames)
-        {
-            if (!enumType.IsEnum)
-            {
-                return null;
             }
 
             var names = Enum.GetNames(enumType);

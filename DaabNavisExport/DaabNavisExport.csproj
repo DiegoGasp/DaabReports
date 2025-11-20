@@ -7,7 +7,7 @@
                 <LangVersion>latest</LangVersion>
                 <RootNamespace>DaabNavisExport</RootNamespace>
 
-		<!-- Build outputs (dll+pdb) go directly into Contents\2026 -->
+		<!-- FIX: Remove net48 from path - output directly to 2026 folder -->
 		<OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\</OutputPath>
         </PropertyGroup>
 
@@ -34,7 +34,6 @@
 		<!-- Copy ribbon XAML into Contents\2026 (alongside DLL) -->
 		<Content Include="DaabRibbon.xaml">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-			<TargetPath>DaabRibbon.xaml</TargetPath>
 		</Content>
 	</ItemGroup>
 
