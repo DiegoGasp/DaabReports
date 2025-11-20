@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "Debug",
+    "Projects": [
+      {
+        "Path": "DaabNavisExport.csproj",
+        "Action": "Start",
+        "DebugTarget": "DaabNavisExport"
+      }
+    ]
+  }
+]

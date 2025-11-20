@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- BEGIN STANDARD SECTION DO NOT EDIT 
+    except for ensuring x:Uid="DaabRibbonTab" has a unique ID
+-->
+<RibbonControl
+    x:Uid="DaabRibbon"
+    xmlns="clr-namespace:Autodesk.Windows;assembly=AdWindows"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:Autodesk.Navisworks.Gui.Roamer.AIRLook;assembly=navisworks.gui.roamer">
+	<!-- END STANDARD SECTION DO NOT EDIT -->
+
+	<!-- Tab Id must match your [RibbonTab(...)] attribute -->
+	<RibbonTab Id="ID_DaabTab_1" KeyTip="D1">
+
+		<!-- EXPORT PANEL -->
+		<RibbonPanel x:Uid="DaabPanel_Export">
+			<RibbonPanelSource
+                x:Uid="DaabPanelSource_Export"
+                KeyTip="E1"
+                Title="Export">
+
+				<!-- These Ids must match your [Command("RunExport")] and [Command("OpenSettings")] -->
+				<local:NWRibbonButton
+                    x:Uid="Button_RunExport"
+                    Id="RunExport"
+                    Size="Large"
+                    KeyTip="R"
+                    MinWidth="84"
+                    ShowText="True"
+                    Text="Export Report"
+                    Orientation="Vertical" />
+
+				<local:NWRibbonButton
+                    x:Uid="Button_OpenSettings"
+                    Id="OpenSettings"
+                    Size="Large"
+                    KeyTip="S"
+                    MinWidth="84"
+                    ShowText="True"
+                    Text="Settings"
+                    Orientation="Vertical" />
+
+			</RibbonPanelSource>
+		</RibbonPanel>
+
+		<!-- TOOLS PANEL -->
+		<RibbonPanel x:Uid="DaabPanel_Tools">
+			<RibbonPanelSource
+                x:Uid="DaabPanelSource_Tools"
+                KeyTip="T1"
+                Title="Tools">
+
+				<!-- Id must match [Command("CreateViewpoint")] -->
+				<local:NWRibbonButton
+                    x:Uid="Button_CreateViewpoint"
+                    Id="CreateViewpoint"
+                    Size="Large"
+                    KeyTip="C"
+                    MinWidth="84"
+                    ShowText="True"
+                    Text="Create Viewpoint"
+                    Orientation="Vertical" />
+
+			</RibbonPanelSource>
+		</RibbonPanel>
+
+	</RibbonTab>
+</RibbonControl>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Applications>
+  <ApplicationPlugin
+    Type="Managed"
+    Assembly="DaabNavisExport.dll"
+    Class="DaabNavisExport.RibbonHandler"
+    LoadOnAutoCADStartup="True" />
+</Applications>

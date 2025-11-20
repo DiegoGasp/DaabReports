@@ -18,12 +18,19 @@ using NavisApplication = Autodesk.Navisworks.Api.Application;
 
 namespace DaabNavisExport
 {
+    internal sealed class HwndWrapper : IWin32Window
+    {
+        public IntPtr Handle { get; }
+        public HwndWrapper(IntPtr handle) => Handle = handle;
+    }
+
     // Ribbon layout
     [Plugin("DaabRibbon", "DAAB")]
     [RibbonLayout("DaabRibbon.xaml")]
-    [Command("RunExport", DisplayName = "Export Report", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Export viewpoints and comments to report")]
-    [Command("OpenSettings", DisplayName = "Settings", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Configure export settings")]
-    [Command("CreateViewpoint", DisplayName = "Create Viewpoint", Icon = "MascotIcon.png", LargeIcon = "MascotIcon.png", ToolTip = "Create and organize viewpoint")]
+    [RibbonTab("ID_DaabTab_1", DisplayName = "Daab Reports")] // matches RibbonTab Id
+    [Command("RunExport", DisplayName = "Export Report", Icon = "ReportIco.png", LargeIcon = "ReportIco.png")]
+    [Command("OpenSettings", DisplayName = "Settings", Icon = "SettingsIco.png", LargeIcon = "SettingsIco.png")]
+    [Command("CreateViewpoint", DisplayName = "Create Viewpoint", Icon = "CameraIco.png", LargeIcon = "CameraIco.png")]
     public sealed class DaabRibbon : CommandHandlerPlugin
     {
         public override int ExecuteCommand(string commandId, params string[] parameters)
@@ -45,15 +52,12 @@ namespace DaabNavisExport
 
         private void ShowSettingsDialog()
         {
-            try
+            using (var dialog = new SettingsForm())
             {
-                // Get Navisworks main window handle
-                var mainWindow = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+                var mainWindow = Process.GetCurrentProcess().MainWindowHandle;
                 if (mainWindow != IntPtr.Zero)
                 {
-                    MessageBox.Show("No active document open.", "Daab Navis Export",
-                        MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return 0;
+                    dialog.ShowDialog(new HwndWrapper(mainWindow));
                 }
                 else
                 {
@@ -103,18 +107,31 @@ namespace DaabNavisExport
             var labelSubfolders = new Label { Text = "Subfolder Options:", Left = 20, Top = 140, Width = 380 };
             subfolderListBox = new ListBox { Left = 20, Top = 165, Width = 380, Height = 120 };
 
-            var projectFolderName = ResolveProjectFolderName(document);
-            var projectDirectory = Path.Combine(outputDirectory, projectFolderName);
-            var dbDirectory = Path.Combine(projectDirectory, DbFolderName);
-            var imagesDirectory = Path.Combine(projectDirectory, ImagesFolderName);
+            newSubfolderText = new TextBox { Left = 20, Top = 295, Width = 280 };
+            addSubfolderButton = new Button { Text = "Add", Left = 310, Top = 293, Width = 45 };
+            addSubfolderButton.Click += AddSubfolderButton_Click;
 
-            Directory.CreateDirectory(projectDirectory);
-            Directory.CreateDirectory(dbDirectory);
-            Directory.CreateDirectory(imagesDirectory);
+            removeSubfolderButton = new Button { Text = "Remove", Left = 360, Top = 293, Width = 40 };
+            removeSubfolderButton.Click += RemoveSubfolderButton_Click;
 
-            var xmlFile = Path.Combine(dbDirectory, "DB.xml");
+            saveButton = new Button
+            {
+                Text = "Save",
+                Left = 230,
+                Top = 350,
+                Width = 80,
+                DialogResult = DialogResult.OK
+            };
+            saveButton.Click += SaveButton_Click;
 
-            cancelButton = new Button { Text = "Cancel", Left = 320, Top = 350, Width = 80 };
+            cancelButton = new Button
+            {
+                Text = "Cancel",
+                Left = 320,
+                Top = 350,
+                Width = 80,
+                DialogResult = DialogResult.Cancel
+            };
             cancelButton.Click += CancelButton_Click;
 
             Controls.AddRange(new Control[] {
@@ -127,26 +144,26 @@ namespace DaabNavisExport
             CancelButton = cancelButton;
         }
 
-        private static string ResolveProjectFolderName(Document document)
+        private void CancelButton_Click(object sender, EventArgs e)
         {
-            var sourceName = document.FileName;
-            if (!string.IsNullOrWhiteSpace(sourceName))
-            {
-                var stem = Path.GetFileNameWithoutExtension(sourceName);
-                var sanitized = PathSanitizer.ToSafeFileName(stem);
-                if (!string.IsNullOrWhiteSpace(sanitized))
-                {
-                    return sanitized;
-                }
+            DialogResult = DialogResult.Cancel;
+            Close();
         }
 
-        private static string ResolveOutputDirectory(IReadOnlyList<string> parameters)
+        private void AddSubfolderButton_Click(object sender, EventArgs e)
         {
-            var explicitPath = parameters?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
-            if (!string.IsNullOrEmpty(explicitPath))
+            if (!string.IsNullOrWhiteSpace(newSubfolderText.Text))
             {
-                return explicitPath!;
+                subfolderListBox.Items.Add(newSubfolderText.Text);
+                newSubfolderText.Clear();
             }
+        }
+
+        private void RemoveSubfolderButton_Click(object sender, EventArgs e)
+        {
+            if (subfolderListBox.SelectedItem != null)
+                subfolderListBox.Items.Remove(subfolderListBox.SelectedItem);
+        }
 
         private void LoadSettings()
         {
@@ -159,54 +176,78 @@ namespace DaabNavisExport
                 subfolderListBox.Items.Add(option);
         }
 
-        private static void ExportViewpointsToXml(Document document, ExportContext context)
+        private void SaveButton_Click(object sender, EventArgs e)
         {
-            context.ViewSequence.Clear();
+            ExportSettings.Instance.ImageWidth = (int)widthInput.Value;
+            ExportSettings.Instance.ImageHeight = (int)heightInput.Value;
+            ExportSettings.Instance.EnableCloudinary = cloudinaryCheckbox.Checked;
 
-            var settings = new XmlWriterSettings
+            ExportSettings.Instance.SubfolderOptions.Clear();
+            foreach (var item in subfolderListBox.Items)
+                ExportSettings.Instance.SubfolderOptions.Add(item.ToString() ?? "");
+
+            ExportSettings.Instance.Save();
+            MessageBox.Show("Settings saved successfully!", "Daab Export",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+    }
+
+    // Settings storage
+    public class ExportSettings
+    {
+        private static ExportSettings? _instance;
+        private static readonly string SettingsPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "DaabNavisExport",
+            "settings.txt");
+
+        public static ExportSettings Instance => _instance ??= Load();
+
+        public int ImageWidth { get; set; } = 1280;
+        public int ImageHeight { get; set; } = 720;
+        public bool EnableCloudinary { get; set; } = true;
+        public List<string> SubfolderOptions { get; set; } = new List<string> { "Open", "Close", "Internal" };
+
+        public void Save()
+        {
+            try
             {
-                Encoding = new UTF8Encoding(false),
-                Indent = true,
-                IndentChars = "  ",
-                NewLineOnAttributes = false
-            };
-
-            Directory.CreateDirectory(Path.GetDirectoryName(context.XmlPath)!);
-
-            using var writer = XmlWriter.Create(context.XmlPath, settings);
-            writer.WriteStartDocument();
-            writer.WriteStartElement("exchange");
-            writer.WriteAttributeString("units", document.Units.ToString());
-            var sourcePath = document.FileName ?? string.Empty;
-            var fileName = string.IsNullOrEmpty(sourcePath) ? string.Empty : Path.GetFileName(sourcePath) ?? string.Empty;
-            writer.WriteAttributeString("filename", fileName);
-            writer.WriteAttributeString("filepath", sourcePath);
-
-            writer.WriteStartElement("viewpoints");
-            var rootItem = document.SavedViewpoints?.RootItem;
-            if (rootItem != null)
-            {
-                foreach (SavedItem item in rootItem.Children)
+                Directory.CreateDirectory(Path.GetDirectoryName(SettingsPath) ?? "");
+                var lines = new List<string>
                 {
-                    WriteSavedItem(writer, item, context);
-                }
-            catch { }
+                    $"ImageWidth={ImageWidth}",
+                    $"ImageHeight={ImageHeight}",
+                    $"EnableCloudinary={EnableCloudinary}",
+                    $"SubfolderOptions={string.Join("|", SubfolderOptions)}"
+                };
+                File.WriteAllLines(SettingsPath, lines);
             }
-
-            writer.WriteEndElement(); // exchange
-            writer.WriteEndDocument();
+            catch { }
         }
 
-        private static void WriteSavedItem(XmlWriter writer, SavedItem item, ExportContext context)
+        private static ExportSettings Load()
         {
-            switch (item)
+            var settings = new ExportSettings();
+            try
             {
-                case GroupItem folder:
-                    WriteFolder(writer, folder, context);
-                    break;
-                case SavedViewpoint viewpoint:
-                    WriteView(writer, viewpoint, context);
-                    break;
+                if (File.Exists(SettingsPath))
+                {
+                    foreach (var line in File.ReadAllLines(SettingsPath))
+                    {
+                        var parts = line.Split('=');
+                        if (parts.Length != 2) continue;
+
+                        switch (parts[0])
+                        {
+                            case "ImageWidth":
+                                if (int.TryParse(parts[1], out int w)) settings.ImageWidth = w;
+                                break;
+                            case "ImageHeight":
+                                if (int.TryParse(parts[1], out int h)) settings.ImageHeight = h;
+                                break;
                             case "EnableCloudinary":
                                 if (bool.TryParse(parts[1], out bool c)) settings.EnableCloudinary = c;
                                 break;
@@ -214,247 +255,396 @@ namespace DaabNavisExport
                                 if (!string.IsNullOrWhiteSpace(parts[1]))
                                     settings.SubfolderOptions = parts[1].Split('|').ToList();
                                 break;
+                        }
+                    }
+                }
             }
-        }
-            }
-        }
             catch { }
             return settings;
         }
     }
 
     // Viewpoint creator plugin
-    [Plugin("DaabViewpointCreator", "DAAB", DisplayName = "Create Viewpoint", ToolTip = "Create organized viewpoint")]
-    [AddInPlugin(AddInLocation.AddIn)]
+    [Plugin("DaabViewpointCreator", "DAAB",
+    DisplayName = "Create Viewpoint",
+    ToolTip = "Create organized viewpoint")]
+    [AddInPlugin(AddInLocation.None)]
     public class ViewpointCreatorPlugin : AddInPlugin
-        {
+    {
         public override int Execute(params string[] parameters)
         {
             try
             {
-                var commentsProperty = viewpoint.GetType().GetProperty("Comments");
-                if (commentsProperty == null)
+                var doc = NavisApplication.ActiveDocument;
+                if (doc == null)
                 {
-                    return;
+                    MessageBox.Show("No active document.", "Daab Viewpoint Creator");
+                    return 0;
                 }
 
-
-                var anyComments = false;
-                foreach (var comment in comments)
+                using (var dialog = new ViewpointCreatorForm(doc))
                 {
-                    if (comment == null)
+                    var mainWindow = Process.GetCurrentProcess().MainWindowHandle;
+                    if (mainWindow != IntPtr.Zero)
                     {
-                        continue;
+                        dialog.ShowDialog(new HwndWrapper(mainWindow));
                     }
-
-                    var commentType = comment.GetType();
-                    var guid = commentType.GetProperty("Guid")?.GetValue(comment)?.ToString();
-                    var status = commentType.GetProperty("Status")?.GetValue(comment)?.ToString();
-                    var author = commentType.GetProperty("Author")?.GetValue(comment)?.ToString();
-                    var body = commentType.GetProperty("Body")?.GetValue(comment)?.ToString();
-                    var creationDate = commentType.GetProperty("CreationDate")?.GetValue(comment);
-
-                    if (!anyComments)
+                    else
                     {
-                        writer.WriteStartElement("comments");
-                        anyComments = true;
+                        dialog.ShowDialog();
                     }
-
-                    writer.WriteStartElement("comment");
-                    if (!string.IsNullOrWhiteSpace(guid))
-                    {
-                        writer.WriteAttributeString("id", guid);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(status))
-                    {
-                        writer.WriteAttributeString("status", status);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(author))
-                    {
-                        writer.WriteElementString("user", author);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(body))
-                    {
-                        writer.WriteElementString("body", body);
-                    }
-
-                    WriteCreatedDate(writer, creationDate);
-                    writer.WriteEndElement();
                 }
-
-                if (anyComments)
-                {
-                    writer.WriteEndElement();
-                }
+                return 0;
             }
-
-        private static void WriteCreatedDate(XmlWriter writer, object? created)
-        {
-            if (created is not DateTime createdDate)
+            catch (Exception ex)
             {
-                return;
-            }
-
-            if (createdDate.Year < 1900)
-            {
-                return;
-
-            writer.WriteStartElement("createddate");
-            writer.WriteStartElement("date");
-            writer.WriteAttributeString("year", createdDate.Year.ToString(CultureInfo.InvariantCulture));
-            writer.WriteAttributeString("month", createdDate.Month.ToString(CultureInfo.InvariantCulture));
-            writer.WriteAttributeString("day", createdDate.Day.ToString(CultureInfo.InvariantCulture));
-            writer.WriteEndElement();
-            writer.WriteEndElement();
-        }
-
-        private static void ExportViewpointImages(ExportContext context, IEnumerable<IReadOnlyList<string?>> rows)
-        {
-            if (context.ViewSequence.Count == 0)
-            {
-                return;
-            }
-
-            Directory.CreateDirectory(context.ImagesDirectory);
-
-            var imageAssignments = new Dictionary<Guid, string>();
-            foreach (var row in rows)
-            {
-                if (row.Count <= 10)
-                {
-                    continue;
-                }
-
-                var guidText = row[4];
-                var imagePath = row[10];
-                if (string.IsNullOrWhiteSpace(guidText) || string.IsNullOrWhiteSpace(imagePath))
-                {
-                    continue;
-                }
-
-                if (!Guid.TryParse(guidText, out var guid))
-                {
-                    continue;
-                }
-
-                var normalizedPath = imagePath!.Trim();
-                if (normalizedPath.Length == 0)
-                {
-                    continue;
-                }
-
-                if (!imageAssignments.ContainsKey(guid))
-                {
-                    imageAssignments.Add(guid, normalizedPath);
-                }
-            }
-
-            foreach (var viewpoint in context.ViewSequence)
-            {
-                if (!imageAssignments.TryGetValue(viewpoint.Guid, out var imageFile))
-                {
-                    continue;
-                }
-                }
-
-                var rendered = TryRenderViewpointImage(context.Document, viewpoint, targetPath, new Size(800, 450));
-                if (!rendered)
-                {
-                    rendered = TryGenerateThumbnail(viewpoint, targetPath, new Size(800, 450));
-                    if (rendered && !File.Exists(targetPath))
-                    {
-                        Debug.WriteLine($"Thumbnail generation reported success but file not found at {targetPath}.");
-                        rendered = false;
-                    }
-                }
-
-                if (!rendered)
-                {
-                    Debug.WriteLine($"No renderer succeeded for viewpoint {viewpoint.DisplayName} (GUID={viewpoint.Guid}).");
-                }
+                MessageBox.Show($"Error: {ex.Message}", "Daab Viewpoint Creator");
+                return -1;
             }
         }
+    }
 
-        private static bool TryRenderViewpointImage(Document document, SavedViewpoint viewpoint, string targetPath, Size size)
+    // Viewpoint creator dialog
+    public class ViewpointCreatorForm : Form
+    {
+        private readonly Document _doc;
+        private ComboBox categoryCombo = null!;
+        private ComboBox levelCombo = null!;
+        private ComboBox subfolderText = null!;
+        private TextBox viewNameText = null!;
+        private TextBox commentText = null!;
+        private Button createButton = null!;
+        private Button cancelButton = null!;
+        private CheckBox addClashGeometryCheckbox = null!;
+
+        public ViewpointCreatorForm(Document doc)
+        {
+            _doc = doc;
+            InitializeComponents();
+            LoadExistingStructure();
+        }
+
+        private void InitializeComponents()
+        {
+            Text = "Create Viewpoint";
+            Width = 450;
+            Height = 450;
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            StartPosition = FormStartPosition.CenterScreen;
+
+            int y = 20;
+            var labelCategory = new Label { Text = "Category:", Left = 20, Top = y, Width = 100 };
+            categoryCombo = new ComboBox { Left = 130, Top = y, Width = 280, DropDownStyle = ComboBoxStyle.DropDown };
+
+            y += 40;
+            var labelLevel = new Label { Text = "Level:", Left = 20, Top = y, Width = 100 };
+            levelCombo = new ComboBox { Left = 130, Top = y, Width = 280, DropDownStyle = ComboBoxStyle.DropDown };
+
+            y += 40;
+            var labelSubfolder = new Label { Text = "Subfolder:", Left = 20, Top = y, Width = 100 };
+            subfolderText = new ComboBox { Left = 130, Top = y, Width = 280, DropDownStyle = ComboBoxStyle.DropDown };
+
+            y += 40;
+            var labelViewName = new Label { Text = "View Name:", Left = 20, Top = y, Width = 100 };
+            viewNameText = new TextBox { Left = 130, Top = y, Width = 280 };
+
+            y += 40;
+            var labelComment = new Label { Text = "Comment:", Left = 20, Top = y, Width = 100 };
+            commentText = new TextBox { Left = 130, Top = y, Width = 280, Height = 80, Multiline = true };
+
+            y += 100;
+            addClashGeometryCheckbox = new CheckBox { Text = "Add clash location geometry", Left = 20, Top = y, Width = 300 };
+
+            y += 40;
+            createButton = new Button { Text = "Create", Left = 230, Top = y, Width = 80 };
+            createButton.Click += CreateButton_Click;
+
+            cancelButton = new Button { Text = "Cancel", Left = 330, Top = y, Width = 80 };
+            cancelButton.Click += CancelButton_Click;
+
+            Controls.AddRange(new Control[] {
+                labelCategory, categoryCombo, labelLevel, levelCombo,
+                labelSubfolder, subfolderText, labelViewName, viewNameText,
+                labelComment, commentText, addClashGeometryCheckbox,
+                createButton, cancelButton
+            });
+
+            AcceptButton = createButton;
+            CancelButton = cancelButton;
+        }
+
+        private void CancelButton_Click(object sender, EventArgs e)
+        {
+            DialogResult = DialogResult.Cancel;
+            Close();
+        }
+
+        private void LoadExistingStructure()
+        {
+            var root = _doc.SavedViewpoints?.RootItem;
+            if (root == null) return;
+
+            var categories = new HashSet<string>();
+            var levels = new HashSet<string>();
+
+            void TraverseForStructure(SavedItem item, int depth, string currentCategory)
+            {
+                if (item is GroupItem group)
+                {
+                    if (depth == 0) categories.Add(group.DisplayName ?? "");
+                    else if (depth == 1) levels.Add(group.DisplayName ?? "");
+
+                    foreach (SavedItem child in group.Children)
+                        TraverseForStructure(child, depth + 1, depth == 0 ? (group.DisplayName ?? "") : currentCategory);
+                }
+            }
+
+            foreach (SavedItem child in root.Children)
+                TraverseForStructure(child, 0, "");
+
+            categoryCombo.Items.AddRange(categories.OrderBy(x => x).ToArray());
+            levelCombo.Items.AddRange(levels.OrderBy(x => x).ToArray());
+
+            if (!categoryCombo.Items.Contains("CLASHES")) categoryCombo.Items.Add("CLASHES");
+            if (!categoryCombo.Items.Contains("3D VIEWS")) categoryCombo.Items.Add("3D VIEWS");
+
+            subfolderText.Items.Clear();
+            foreach (var option in ExportSettings.Instance.SubfolderOptions)
+                subfolderText.Items.Add(option);
+        }
+
+        private void CreateButton_Click(object sender, EventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(viewNameText.Text))
+            {
+                MessageBox.Show("Please enter a view name.", "Validation");
+                return;
+            }
+
+            try
+            {
+                var vp = new SavedViewpoint(_doc.CurrentViewpoint.CreateCopy());
+                vp.DisplayName = viewNameText.Text;
+
+                using (var transaction = _doc.Database.BeginTransaction(DatabaseChangedAction.Edited))
+                {
+                    var root = _doc.SavedViewpoints.RootItem;
+                    var category = GetOrCreateFolder(root, categoryCombo.Text);
+                    var level = string.IsNullOrWhiteSpace(levelCombo.Text) ? category : GetOrCreateFolder(category, levelCombo.Text);
+                    var subfolder = string.IsNullOrWhiteSpace(subfolderText.Text) ? level : GetOrCreateFolder(level, subfolderText.Text);
+
+                    subfolder.Children.Add(vp);
+
+                    if (!string.IsNullOrWhiteSpace(commentText.Text))
+                    {
+                        AddComment(vp, commentText.Text);
+                    }
+
+                    transaction.Commit();
+                }
+
+                MessageBox.Show($"Viewpoint '{viewNameText.Text}' created successfully!", "Success",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                DialogResult = DialogResult.OK;
+                Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error creating viewpoint: {ex.Message}\n\nDetails: {ex.StackTrace}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private GroupItem GetOrCreateFolder(GroupItem parent, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return parent;
+
+            foreach (SavedItem item in parent.Children)
+            {
+                if (item is GroupItem group && group.DisplayName == name)
+                    return group;
+            }
+
+            var newFolder = new FolderItem { DisplayName = name };
+            parent.Children.Add(newFolder);
+            return newFolder;
+        }
+
+        private void AddComment(SavedViewpoint vp, string commentText)
         {
             try
             {
-                TryApplyViewpoint(document, viewpoint);
-
-                var activeViewProperty = document.GetType().GetProperty("ActiveView");
-                var activeView = activeViewProperty?.GetValue(document);
-                if (activeView == null)
+                var commentsProperty = vp.GetType().GetProperty("Comments");
+                if (commentsProperty != null)
                 {
-                    return false;
+                    var comments = commentsProperty.GetValue(vp) as IList;
+                    if (comments != null)
+                    {
+                        var commentType = comments.GetType().GetGenericArguments().FirstOrDefault();
+                        if (commentType != null)
+                        {
+                            var comment = Activator.CreateInstance(commentType);
+                            commentType.GetProperty("Body")?.SetValue(comment, commentText);
+                            commentType.GetProperty("Status")?.SetValue(comment, "New");
+                            commentType.GetProperty("Author")?.SetValue(comment, Environment.UserName);
+                            commentType.GetProperty("CreationDate")?.SetValue(comment, DateTime.Now);
+                            comments.Add(comment);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Comment addition failed, but viewpoint was still created
+            }
+        }
+    }
+
+    // Main export plugin
+    [Plugin("DaabNavisExport", "DAAB",
+    DisplayName = "DaabReport",
+    ToolTip = "Exports Navisworks viewpoints and comments to Daab Reports format")]
+    [AddInPlugin(AddInLocation.None)]
+    public class ExportPlugin : AddInPlugin
+    {
+        private const string DbFolderName = "DB";
+        private const string ImagesFolderName = "Images";
+        private const bool EnableSectioning = true;
+        private const ImageGenerationStyle ExportStyle = ImageGenerationStyle.ScenePlusOverlay;
+
+        // Cloudinary credentials
+        private const string CloudinaryCloudName = "dhxutzg5f";
+        private const string CloudinaryApiKey = "513751345586948";
+        private const string CloudinaryApiSecret = "n3s3g_bCu7etUh6sRno9r8uQfNk";
+
+        private static string _logFilePath = "";
+        private static int _viewCounter = 0;
+        private static int _totalViews = 0;
+        private static int _processedViews = 0;
+        private static Cloudinary? _cloudinary;
+        private static string _projectName = "";
+
+        public override int Execute(params string[] parameters)
+        {
+            try
+            {
+                if (NavisApplication.ActiveDocument == null)
+                {
+                    MessageBox.Show("No active document open.", "Daab Export");
+                    return 0;
                 }
 
-                var viewType = activeView.GetType();
+                var document = NavisApplication.ActiveDocument;
+                var settings = ExportSettings.Instance;
 
-                if (TryInvokeViewToFile(activeView, viewType, "RenderToImage", targetPath, size))
+                var outputDirectory = ResolveOutputDirectory(parameters);
+                var exportContext = BuildExportContext(document, outputDirectory);
+
+                _projectName = Path.GetFileName(
+                    exportContext.ProjectDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+
+                _logFilePath = Path.Combine(exportContext.DbDirectory, "DaabExport.log");
+                Log("=== Export started " + DateTime.Now.ToString("u") + " ===");
+                Log($"Image resolution: {settings.ImageWidth}x{settings.ImageHeight}");
+
+                // Initialize Cloudinary if enabled
+                if (settings.EnableCloudinary)
                 {
-                    return true;
+                    InitializeCloudinary();
+                    Log("Cloudinary integration enabled");
+                }
+                else
+                {
+                    Log("Cloudinary integration disabled - using local paths only");
                 }
 
-                if (TryInvokeViewToFile(activeView, viewType, "SaveToImage", targetPath, size))
+                var root = document.SavedViewpoints?.RootItem;
+                if (root == null)
                 {
-                    return true;
+                    Log("No SavedViewpoints root found. Aborting.");
+                    return 0;
                 }
 
-                if (TryInvokeViewWithStyle(activeView, viewType, "RenderToImage", targetPath, size))
-                {
-                    return true;
-                }
+                _totalViews = CountSavedViews(root);
+                _processedViews = 0;
+                _viewCounter = 0;
 
-                if (TryGenerateImage(activeView, viewType, targetPath, size))
+                var csvPath = Path.Combine(exportContext.DbDirectory, "navisworks_views_comments.csv");
+                using (var writer = new StreamWriter(csvPath, false, Encoding.UTF8))
                 {
-                    return true;
+                    writer.WriteLine("Category,Level,Subfolder,ViewName,GUID,CommentID,Status,User,Body,CreatedDate,ImagePath,PublicImageURL");
+
+                    bool cancelled = false;
+                    Progress progress = null;
+                    try
+                    {
+                        progress = NavisApplication.BeginProgress();
+
+                        foreach (SavedItem child in root.Children)
+                        {
+                            TraverseAndExport(writer, document, exportContext, child, new List<string>(), progress, settings);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        cancelled = true;
+                        Log("=== Export cancelled by user ===");
+                    }
+                    finally
+                    {
+                        NavisApplication.EndProgress();
+                    }
+
+                    if (!cancelled)
+                    {
+                        Log("CSV written: " + csvPath);
+                        Log("=== Export finished successfully ===");
+
+                        CopyPowerBITemplate(exportContext);
+
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = exportContext.ProjectDirectory,
+                            UseShellExecute = true
+                        });
+                    }
+
+                    return 0;
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to render viewpoint image for {viewpoint.DisplayName}: {ex.Message}");
+                Log("Export failed: " + ex);
+                MessageBox.Show("Export failed: " + ex.Message, "Daab Export");
+                return -1;
             }
-
-            return false;
         }
 
-        private static bool TryApplyViewpoint(Document document, SavedViewpoint viewpoint)
+        private static void InitializeCloudinary()
+        {
+            var account = new Account(CloudinaryCloudName, CloudinaryApiKey, CloudinaryApiSecret);
+            _cloudinary = new Cloudinary(account);
+        }
+
+        private static void CopyPowerBITemplate(ExportContext exportContext)
         {
             try
             {
-                var applied = false;
-                var savedViewpoints = document.SavedViewpoints;
-                if (savedViewpoints != null)
-                {
-                    var currentProp = savedViewpoints.GetType().GetProperty("CurrentSavedViewpoint");
-                    if (currentProp != null && currentProp.CanWrite)
-                    {
-                        currentProp.SetValue(savedViewpoints, viewpoint);
-                        applied = true;
-                    }
-                }
+                var assemblyDir = Path.GetDirectoryName(
+                    System.Reflection.Assembly.GetExecutingAssembly().Location) ?? "";
+                var src = Path.Combine(assemblyDir, "DaabReport.pbix");
 
-                var applyMethod = viewpoint.GetType().GetMethod("ApplyToDocument", new[] { typeof(Document) });
-                if (applyMethod != null)
-                {
-                    applyMethod.Invoke(viewpoint, new object[] { document });
-                    applied = true;
-                }
+                Log("PBIX lookup:");
+                Log("  AssemblyDir: " + assemblyDir);
+                Log("  Candidate  : " + src);
 
-                var viewpointProperty = viewpoint.GetType().GetProperty("Viewpoint");
-                var navisViewpoint = viewpointProperty?.GetValue(viewpoint);
-                if (navisViewpoint != null)
+                if (!File.Exists(src))
                 {
-                    var documentType = document.GetType();
-                    var currentViewpointProperty = documentType.GetProperty("CurrentViewpoint");
-                    if (currentViewpointProperty != null && currentViewpointProperty.CanWrite)
-                    {
-                        currentViewpointProperty.SetValue(document, navisViewpoint);
-                        applied = true;
-                    }
+                    Log("DaabReport.pbix not found next to the plugin DLL.");
+                    return;
+                }
 
                 var safeProjectName = ToSafeFileName(_projectName);
                 var destFileName = $"{safeProjectName}_Report.pbix";
@@ -467,220 +657,347 @@ namespace DaabNavisExport
                     Log("Power BI template copied to: " + dest);
                 else
                     Log("PBIX copy failed - file not found after copy.");
-                }
+            }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to apply viewpoint {viewpoint.DisplayName}: {ex.Message}");
+                Log("Failed to copy Power BI template: " + ex.ToString());
             }
         }
 
-        private static bool TryGenerateThumbnail(SavedViewpoint viewpoint, string targetPath, Size size)
+        private static ExportContext BuildExportContext(Document document, string outputDirectory)
+        {
+            Directory.CreateDirectory(outputDirectory);
+
+            var projectFolderName = ResolveProjectFolderName(document);
+            var projectDirectory = Path.Combine(outputDirectory, projectFolderName);
+            var dbDirectory = Path.Combine(projectDirectory, DbFolderName);
+            var imagesDirectory = Path.Combine(projectDirectory, ImagesFolderName);
+
+            Directory.CreateDirectory(projectDirectory);
+            Directory.CreateDirectory(dbDirectory);
+            Directory.CreateDirectory(imagesDirectory);
+
+            return new ExportContext(document, outputDirectory, projectDirectory, dbDirectory, imagesDirectory);
+        }
+
+        private static string ResolveProjectFolderName(Document document)
+        {
+            var sourceName = document.FileName;
+            if (!string.IsNullOrWhiteSpace(sourceName))
+            {
+                var stem = Path.GetFileNameWithoutExtension(sourceName);
+                return ToSafeFileName(stem);
+            }
+            return "Navisworks_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        }
+
+        private static string ResolveOutputDirectory(IReadOnlyList<string> parameters)
+        {
+            var explicitPath = parameters?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+            if (!string.IsNullOrEmpty(explicitPath))
+                return explicitPath;
+
+            var myDocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            return Path.Combine(myDocs, "DaabNavisExport");
+        }
+
+        private static int CountSavedViews(SavedItem item)
+        {
+            int count = 0;
+            if (item is GroupItem gi)
+            {
+                foreach (SavedItem child in gi.Children)
+                    count += CountSavedViews(child);
+            }
+            else if (item is SavedViewpoint)
+            {
+                count++;
+            }
+            return count;
+        }
+
+        private static void TraverseAndExport(
+            StreamWriter writer,
+            Document doc,
+            ExportContext ctx,
+            SavedItem item,
+            List<string> folderPath,
+            Progress progress,
+            ExportSettings settings)
+        {
+            if (item is GroupItem folder)
+            {
+                var nextPath = new List<string>(folderPath) { folder.DisplayName ?? "" };
+                foreach (SavedItem child in folder.Children)
+                    TraverseAndExport(writer, doc, ctx, child, nextPath, progress, settings);
+                return;
+            }
+
+            if (item is not SavedViewpoint vp)
+                return;
+
+            string category = folderPath.Count >= 1 ? folderPath[0] : "";
+            string level = folderPath.Count >= 2 ? folderPath[1] : "";
+            string subfolder = "";
+            if (folderPath.Count >= 3)
+                subfolder = string.Join(" / ", folderPath.Skip(2).Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            _viewCounter++;
+            string imageFile = $"vp{_viewCounter:D4}.jpg";
+            string imageFullPath = Path.Combine(ctx.ImagesDirectory, imageFile);
+
+            bool imageOk = TryGenerateImage(doc, vp, imageFullPath, settings.ImageWidth, settings.ImageHeight);
+            if (!imageOk)
+            {
+                Log("Image render failed for: " + vp.DisplayName + " -> " + imageFullPath);
+            }
+
+            string publicUrl = "";
+            if (imageOk && settings.EnableCloudinary && _cloudinary != null)
+            {
+                publicUrl = UploadToCloudinary(imageFullPath, vp.DisplayName ?? $"view_{_viewCounter}");
+            }
+
+            var comments = ExtractComments(vp);
+            string viewName = vp.DisplayName ?? "";
+            string guid = vp.Guid.ToString();
+
+            if (comments.Count == 0)
+            {
+                WriteCsvRow(writer, category, level, subfolder, viewName, guid,
+                            commentId: "", status: "", user: "", body: "", createdDate: "",
+                            imageFile: imageFile, publicUrl: publicUrl);
+            }
+            else
+            {
+                foreach (var c in comments)
+                {
+                    WriteCsvRow(writer, category, level, subfolder, viewName, guid,
+                                commentId: c.Id ?? "",
+                                status: c.Status ?? "",
+                                user: c.User ?? "",
+                                body: c.Body ?? "",
+                                createdDate: c.CreatedDate ?? "",
+                                imageFile: imageFile, publicUrl: publicUrl);
+                }
+            }
+
+            _processedViews = Math.Min(_processedViews + 1, _totalViews);
+            double fraction = (_totalViews == 0) ? 1.0 : (_processedViews / (double)_totalViews);
+
+            // Update progress bar and respect Cancel
+            var cont = progress.Update(fraction);
+
+            Log($"Exporting view {_processedViews}/{_totalViews}: {vp.DisplayName ?? imageFile}");
+
+            if (!cont)
+            {
+                Log("Export cancelled by user at: " + (vp.DisplayName ?? "(unnamed)"));
+                throw new OperationCanceledException("User cancelled export.");
+            }
+        }
+
+        private static string UploadToCloudinary(string localPath, string viewName)
         {
             try
             {
-                var type = viewpoint.GetType();
+                Log($"Uploading to Cloudinary: {viewName}");
 
-                var sizeMethod = type.GetMethod("GenerateThumbnail", new[] { typeof(Size) });
-                if (sizeMethod != null)
+                var safeViewName = ToSafeFileName(viewName);
+                var uniqueId = $"{_projectName}_{safeViewName}";
+
+                var uploadParams = new ImageUploadParams()
                 {
-                    var result = sizeMethod.Invoke(viewpoint, new object[] { size });
-                    if (TrySaveImageToPath(result, targetPath))
-                    {
-                        return true;
-                    }
-            return "Navisworks_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    File = new FileDescription(localPath),
+                    PublicId = uniqueId,
+                    Folder = "navisworks",
+                    Overwrite = true,
+                    UseFilename = false,
+                    UniqueFilename = false
+                };
+
+                var uploadResult = _cloudinary!.Upload(uploadParams);
+
+                if (uploadResult.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    Log($"Upload successful: {uploadResult.SecureUrl}");
+                    return uploadResult.SecureUrl.ToString();
                 }
-
-                var noArgMethod = type.GetMethod("GenerateThumbnail", Type.EmptyTypes);
-                if (noArgMethod != null)
+                else
                 {
-                    var result = noArgMethod.Invoke(viewpoint, Array.Empty<object>());
-                    if (TrySaveImageToPath(result, targetPath))
-                    {
-                        return true;
-                    }
+                    Log($"Upload failed: {uploadResult.Error?.Message ?? "Unknown error"}");
+                    return "";
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"Cloudinary upload exception for {viewName}: {ex.Message}");
+                return "";
+            }
+        }
 
-                var property = type.GetProperty("Thumbnail");
-                if (property != null)
+        private static void WriteCsvRow(
+            StreamWriter writer,
+            string category,
+            string level,
+            string subfolder,
+            string viewName,
+            string guid,
+            string commentId,
+            string status,
+            string user,
+            string body,
+            string createdDate,
+            string imageFile,
+            string publicUrl)
+        {
+            string San(string s) => (s ?? "").Replace(",", " ");
+
+            writer.WriteLine(string.Join(",",
+                San(category),
+                San(level),
+                San(subfolder),
+                San(viewName),
+                San(guid),
+                San(commentId),
+                San(status),
+                San(user),
+                San(body),
+                San(createdDate),
+                San(imageFile),
+                San(publicUrl)
+            ));
+        }
+
+        private static List<CommentInfo> ExtractComments(SavedViewpoint vp)
+        {
+            var list = new List<CommentInfo>();
+            try
+            {
+                var commentsProp = vp.GetType().GetProperty("Comments");
+                if (commentsProp?.GetValue(vp) is IEnumerable comments)
                 {
-                    var value = property.GetValue(viewpoint);
-                    if (TrySaveImageToPath(value, targetPath))
+                    foreach (var c in comments)
                     {
-                        return true;
+                        if (c == null) continue;
+                        var t = c.GetType();
+
+                        string id = t.GetProperty("Guid")?.GetValue(c)?.ToString();
+                        string status = t.GetProperty("Status")?.GetValue(c)?.ToString();
+                        string user = t.GetProperty("Author")?.GetValue(c)?.ToString();
+                        string body = t.GetProperty("Body")?.GetValue(c)?.ToString();
+
+                        string created = "";
+                        var dtObj = t.GetProperty("CreationDate")?.GetValue(c);
+                        if (dtObj is DateTime dt && dt.Year >= 1900)
+                            created = dt.ToString("M/d/yyyy", CultureInfo.InvariantCulture);
+
+                        list.Add(new CommentInfo
+                        {
+                            Id = id,
+                            Status = status,
+                            User = user,
+                            Body = body,
+                            CreatedDate = created
+                        });
                     }
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Unable to create thumbnail for viewpoint {viewpoint.DisplayName}: {ex.Message}");
+                Log("Failed to reflect comments: " + ex.Message);
             }
-
-            return false;
+            return list;
         }
 
-        private static bool TryInvokeViewToFile(object activeView, Type viewType, string methodName, string targetPath, Size size)
+        private static bool TryGenerateImage(Document doc, SavedViewpoint vp, string targetPath, int width, int height)
         {
-            var method = viewType.GetMethod(methodName, new[] { typeof(string), typeof(int), typeof(int) });
-            if (method == null)
+            try
             {
+                doc.SavedViewpoints.CurrentSavedViewpoint = vp;
+
+                var view = doc.ActiveView;
+                if (view == null)
+                {
+                    Log("ActiveView is null when exporting: " + (vp.DisplayName ?? "(unnamed)"));
+                    return false;
+                }
+
+                using (var bmp = view.GenerateImage(ExportStyle, width, height, EnableSectioning))
+                {
+                    if (bmp == null)
+                    {
+                        Log("GenerateImage returned null for: " + (vp.DisplayName ?? "(unnamed)"));
+                        return false;
+                    }
+
+                    var dir = Path.GetDirectoryName(targetPath);
+                    if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+
+                    bmp.Save(targetPath, ImageFormat.Jpeg);
+
+                    bool exists = File.Exists(targetPath);
+                    if (!exists)
+                        Log("Image file not found after save: " + targetPath);
+
+                    return exists;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log("Image export failed for " + (vp.DisplayName ?? "(unnamed)") + ": " + ex.Message);
                 return false;
             }
-
-            method.Invoke(activeView, new object[] { targetPath, size.Width, size.Height });
-            return File.Exists(targetPath);
         }
 
-        private static bool TryInvokeViewWithStyle(object activeView, Type viewType, string methodName, string targetPath, Size size)
+        private static void Log(string message)
         {
-            foreach (var method in viewType.GetMethods().Where(m => m.Name == methodName))
-            {
-                var parameters = method.GetParameters();
-                if (parameters.Length != 4)
-                {
-                    continue;
-                }
-
-                if (parameters[0].ParameterType != typeof(string) ||
-                    parameters[2].ParameterType != typeof(int) ||
-                    parameters[3].ParameterType != typeof(int))
-                {
-                    continue;
-                }
-
-                var styleValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
-                if (styleValue == null)
-                {
-                    if (parameters[1].ParameterType.IsValueType)
-                    {
-                        styleValue = Activator.CreateInstance(parameters[1].ParameterType);
-                    }
-                    }
-
-                method.Invoke(activeView, new[] { targetPath, styleValue, size.Width, size.Height });
-                if (File.Exists(targetPath))
-                {
-                    return true;
-                }
-            }
-        }
-
-        private static bool TryGenerateImage(object activeView, Type viewType, string targetPath, Size size)
-        {
-            foreach (var method in viewType.GetMethods().Where(m => m.Name == "GenerateImage"))
-            {
-                var parameters = method.GetParameters();
-                object? result = null;
-
-                if (parameters.Length == 2 &&
-                    parameters[0].ParameterType == typeof(int) &&
-                    parameters[1].ParameterType == typeof(int))
-                {
-                    result = method.Invoke(activeView, new object[] { size.Width, size.Height });
-                }
-                else if (parameters.Length == 3 &&
-                         parameters[1].ParameterType == typeof(int) &&
-                         parameters[2].ParameterType == typeof(int))
-                {
-                    var styleValue = ResolveEnumValue(parameters[0].ParameterType, new[] { "Raster", "Standard", "Smooth", "HighQuality" });
-                    if (styleValue == null)
-                    {
-                        if (parameters[0].ParameterType.IsValueType)
-                        {
-                            styleValue = Activator.CreateInstance(parameters[0].ParameterType);
-                        }
-                        else
-                        {
-                            continue;
-                        }
-                    }
-                }
-
-                if (TrySaveImageToPath(result, targetPath))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-            if (imageObject is Bitmap bitmap)
-            {
-                using (bitmap)
-                {
             try
             {
-                if (TrySaveViaReflection(imageObject, targetPath))
-                {
-                    return true;
-                }
-
-                var toBitmapMethod = imageObject.GetType().GetMethod("ToBitmap", Type.EmptyTypes);
-                if (toBitmapMethod?.Invoke(imageObject, Array.Empty<object>()) is Bitmap converted)
-                {
-                    using (converted)
-                    {
-                        converted.Save(targetPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                    }
-                }
+                var line = DateTime.Now.ToString("u") + " " + message + Environment.NewLine;
+                Debug.WriteLine(line);
+                if (!string.IsNullOrEmpty(_logFilePath))
+                    File.AppendAllText(_logFilePath, line);
             }
-            finally
+            catch
             {
-                disposable?.Dispose();
+                // ignore logging errors
             }
         }
 
-        private static bool TrySaveViaReflection(object imageObject, string targetPath)
+        private static string ToSafeFileName(string s)
         {
-            var type = imageObject.GetType();
-
-            var saveString = type.GetMethod("Save", new[] { typeof(string) });
-            if (saveString != null)
-            {
-                saveString.Invoke(imageObject, new object[] { targetPath });
-                if (File.Exists(targetPath))
-                {
-                    return true;
-                }
-            }
-                }
-
-                var formatValue = ResolveEnumValue(parameters[1].ParameterType, new[] { "Jpeg", "JPEG", "Jpg" });
-                if (formatValue == null)
-                {
-                    if (parameters[1].ParameterType.IsValueType)
-                    {
-                        formatValue = Activator.CreateInstance(parameters[1].ParameterType);
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-
-
-            var writeToFile = type.GetMethod("WriteToFile", new[] { typeof(string) });
-            if (writeToFile != null)
-            {
-                writeToFile.Invoke(imageObject, new object[] { targetPath });
-                return File.Exists(targetPath);
-            }
-
-            return false;
+            if (string.IsNullOrEmpty(s)) return "Untitled";
+            foreach (var ch in Path.GetInvalidFileNameChars())
+                s = s.Replace(ch, '_');
+            return s.Trim();
         }
-            }
+    }
 
-            var names = Enum.GetNames(enumType);
-            foreach (var preferred in preferredNames)
-            {
-                var match = names.FirstOrDefault(n => string.Equals(n, preferred, StringComparison.OrdinalIgnoreCase));
-                if (match != null)
-                {
-                    return Enum.Parse(enumType, match);
-                }
-            }
+    internal sealed class ExportContext
+    {
+        public Document Document { get; }
+        public string OutputDirectory { get; }
+        public string ProjectDirectory { get; }
+        public string DbDirectory { get; }
+        public string ImagesDirectory { get; }
 
-            return names.Length > 0 ? Enum.Parse(enumType, names[0]) : null;
+        public ExportContext(Document document, string outputDirectory, string projectDirectory, string dbDirectory, string imagesDirectory)
+        {
+            Document = document;
+            OutputDirectory = outputDirectory;
+            ProjectDirectory = projectDirectory;
+            DbDirectory = dbDirectory;
+            ImagesDirectory = imagesDirectory;
         }
-        }
+    }
+
+    internal sealed class CommentInfo
+    {
+        public string? Id { get; set; }
+        public string? Status { get; set; }
+        public string? User { get; set; }
+        public string? Body { get; set; }
+        public string? CreatedDate { get; set; }
+    }
 }

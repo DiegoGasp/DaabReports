@@ -1,0 +1,15 @@
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\DaabRibbon.xaml
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.csproj.AssemblyReference.cache
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.Properties.Resources.resources
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.csproj.GenerateResource.cache
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.csproj.CoreCompileInputs.cache
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.sourcelink.json
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.dll
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavisExport.pdb
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\DaabNavisExport.dll.config
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\DaabNavisExport.dll
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\DaabNavisExport.pdb
+C:\Users\Diego\daabcontech.com\MANAGEMENT - Documents\Projects\Git\DaabReports\DaabNavisExport\obj\Debug\net48\DaabNavi.14B373AE.Up2Date
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\DaabReport.pbix
+C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\net48\MascotIcon.png

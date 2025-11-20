@@ -1,21 +1,27 @@
-<Project Sdk="Microsoft.NET.Sdk">
-        <PropertyGroup>
-                <TargetFramework>net48</TargetFramework>
-                <PlatformTarget>x64</PlatformTarget>
-                <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-                <Nullable>enable</Nullable>
-                <LangVersion>latest</LangVersion>
-                <RootNamespace>DaabNavisExport</RootNamespace>
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<PlatformTarget>x64</PlatformTarget>
+		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<RootNamespace>DaabNavisExport</RootNamespace>
 
 		<!-- FIX: Remove net48 from path - output directly to 2026 folder -->
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<OutputPath>C:\ProgramData\Autodesk\ApplicationPlugins\DaabNavisExport.Addin.bundle\Contents\2026\</OutputPath>
-        </PropertyGroup>
+
+		<!-- Debug launch settings -->
+		<StartAction>Program</StartAction>
+		<StartProgram>C:\Program Files\Autodesk\Navisworks Manage 2026\Roamer.exe</StartProgram>
+	</PropertyGroup>
 
 	<!-- Remove from default handling -->
 	<ItemGroup>
 		<None Remove="DaabNavisExport.addin" />
 		<None Remove="DaabRibbon.xaml" />
 		<None Remove="PackageContents.xml" />
+		<None Remove="DaabReport.pbix" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -24,7 +30,25 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 			<TargetPath>..\..\DaabNavisExport.addin</TargetPath>
 		</Content>
+		
+		<!-- Add camera icon -->
+		<Content Include="CameraIco.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Images\CameraIco.png</TargetPath>
+		</Content>
 
+		<!-- Add Settings icon -->
+		<Content Include="SettingsIco.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Images\SettingsIco.png</TargetPath>
+		</Content>
+
+		<!-- Add Report icon -->
+		<Content Include="ReportIco.png">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>Images\ReportIco.png</TargetPath>
+		</Content>
+		
 		<!-- Copy PackageContents.xml to bundle root -->
 		<Content Include="PackageContents.xml">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -34,15 +58,49 @@
 		<!-- Copy ribbon XAML into Contents\2026 (alongside DLL) -->
 		<Content Include="DaabRibbon.xaml">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<TargetPath>en-US\DaabRibbon.xaml</TargetPath>
+		</Content>
+
+		<!-- Copy Power BI template into Contents\2026 (alongside DLL) -->
+		<Content Include="DaabReport.pbix">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Reference Include="Autodesk.Navisworks.Api">
+		<Reference Include="Autodesk.Navisworks.Api">
 			<HintPath>C:\Program Files\Autodesk\Navisworks Manage 2026\Autodesk.Navisworks.Api.dll</HintPath>
 			<Private>false</Private>
-	  </Reference>
+		</Reference>
 		<Reference Include="System.Drawing" />
 		<Reference Include="System.Windows.Forms" />
+		<PackageReference Include="CloudinaryDotNet" Version="1.26.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Properties\Resources.Designer.cs">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<Compile Update="Properties\Settings.Designer.cs">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+	<ItemGroup>
+		<EmbeddedResource Update="Properties\Resources.resx">
+			<Generator>ResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.cs</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="Properties\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<LastGenOutput>Settings.Designer.cs</LastGenOutput>
+		</None>
 	</ItemGroup>
 </Project>
